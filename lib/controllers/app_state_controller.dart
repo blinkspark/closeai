@@ -4,12 +4,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 class AppState extends GetxController {
   static const configFileName = 'config.json';
 
-  late String supportPath;
+  late File configFile;
   final themeMode = ThemeMode.system.obs;
   final Isar isar = Get.find();
 
@@ -17,9 +18,15 @@ class AppState extends GetxController {
   void onInit() {
     super.onInit();
     getApplicationSupportDirectory().then((value) {
-      supportPath = value.path;
+      final supportPath = value.path;
+      configFile = File(join(supportPath, configFileName));
       loadConfig();
     });
+  }
+
+  void setThemeMode(ThemeMode mode) async {
+    themeMode.value = mode;
+    await saveConfig();
   }
 
   Map<String, dynamic> toJson() {
@@ -31,15 +38,14 @@ class AppState extends GetxController {
   }
 
   Future<void> loadConfig() async {
-    try {
-      final file = File('$supportPath/$configFileName');
-      if (await file.exists()) {
-        final json = await file.readAsString();
-        fromJson(jsonDecode(json));
-      }
-    } catch (e) {
-      // ignore: avoid_print
-      print(e);
+    if (await configFile.exists()) {
+      final json = await configFile.readAsString();
+      fromJson(jsonDecode(json));
     }
+  }
+
+  Future<void> saveConfig() async {
+    final json = jsonEncode(toJson());
+    await configFile.writeAsString(json);
   }
 }
