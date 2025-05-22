@@ -97,6 +97,7 @@ Provider _providerDeserialize(
   final object = Provider();
   object.apiKey = reader.readStringOrNull(offsets[0]);
   object.baseUrl = reader.readStringOrNull(offsets[1]);
+  object.id = id;
   object.name = reader.readString(offsets[2]);
   return object;
 }
@@ -128,6 +129,7 @@ List<IsarLinkBase<dynamic>> _providerGetLinks(Provider object) {
 }
 
 void _providerAttach(IsarCollection<dynamic> col, Id id, Provider object) {
+  object.id = id;
   object.models.attach(col, col.isar.collection<Model>(), r'models', id);
 }
 

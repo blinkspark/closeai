@@ -1,13 +1,29 @@
+import 'package:closeai/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:isar/isar.dart';
+import 'package:path_provider/path_provider.dart';
 
-import 'controllers/app_state.dart';
+import 'controllers/app_state_controller.dart';
+import 'controllers/provider_controller.dart';
+import 'models/model.dart';
+import 'models/provider.dart';
+import 'models/session.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final appState = await AppState().init();
-  Get.put(appState);
+  final dir = await getApplicationSupportDirectory();
+  final supportPath = dir.path;
+  await Get.putAsync(() async {
+    return await Isar.open([
+      ProviderSchema,
+      ModelSchema,
+      SessionSchema,
+    ], directory: supportPath);
+  });
+  Get.put(AppState());
+  Get.put(ProviderController());
   runApp(const MainApp());
 }
 
@@ -21,7 +37,7 @@ class MainApp extends StatelessWidget {
         theme: createTheme(Brightness.light),
         darkTheme: createTheme(Brightness.dark),
         themeMode: Get.find<AppState>().themeMode.value,
-        home: Scaffold(body: Center(child: Text('Hello World!'))),
+        home: HomePage(),
       );
     });
   }
