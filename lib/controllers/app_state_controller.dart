@@ -7,12 +7,15 @@ import 'package:isar/isar.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
-class AppState extends GetxController {
+class AppStateController extends GetxController {
   static const configFileName = 'config.json';
 
   late File configFile;
-  final themeMode = ThemeMode.system.obs;
   final Isar isar = Get.find();
+
+  final themeMode = ThemeMode.system.obs;
+
+  final navIndex = 0.obs;
 
   @override
   void onInit() {

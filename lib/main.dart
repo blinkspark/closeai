@@ -22,7 +22,7 @@ void main() async {
       SessionSchema,
     ], directory: supportPath);
   });
-  Get.put(AppState());
+  Get.put(AppStateController());
   Get.put(ProviderController());
   runApp(const MainApp());
 }
@@ -36,7 +36,7 @@ class MainApp extends StatelessWidget {
       return GetMaterialApp(
         theme: createTheme(Brightness.light),
         darkTheme: createTheme(Brightness.dark),
-        themeMode: Get.find<AppState>().themeMode.value,
+        themeMode: Get.find<AppStateController>().themeMode.value,
         home: HomePage(),
       );
     });
