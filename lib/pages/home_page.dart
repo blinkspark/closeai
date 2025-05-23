@@ -1,4 +1,5 @@
 // import 'package:closeai/controllers/provider_controller.dart';
+import 'package:closeai/pages/chat_page.dart';
 import 'package:closeai/pages/home_page/nav_rail.dart';
 import 'package:closeai/pages/setting_page.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,11 @@ class HomePage extends GetResponsiveView<AppStateController> {
         children: [
           NavRail(),
           VerticalDivider(thickness: 1),
-          Expanded(child: SettingPage()),
+          Obx(() {
+            return Expanded(
+              child: [ChatPage(), SettingPage()][controller.navIndex.value],
+            );
+          }),
         ],
       ),
     );

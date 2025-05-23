@@ -1,3 +1,4 @@
+import 'package:closeai/controllers/session_controller.dart';
 import 'package:closeai/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -24,6 +25,7 @@ void main() async {
   });
   Get.put(AppStateController());
   Get.put(ProviderController());
+  Get.put(SessionController());
   runApp(const MainApp());
 }
 
@@ -37,6 +39,7 @@ class MainApp extends StatelessWidget {
         theme: createTheme(Brightness.light),
         darkTheme: createTheme(Brightness.dark),
         themeMode: Get.find<AppStateController>().themeMode.value,
+        debugShowCheckedModeBanner: false,
         home: HomePage(),
       );
     });
@@ -44,7 +47,6 @@ class MainApp extends StatelessWidget {
 
   ThemeData createTheme(Brightness brightness) {
     final theme = ThemeData(
-      useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: Colors.blue,
         brightness: brightness,

@@ -1,8 +1,8 @@
-import 'package:closeai/pages/setting_page/setting_section.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/app_state_controller.dart';
+import 'setting_page/setting_section.dart';
 
 class SettingPage extends GetResponsiveView<AppStateController> {
   SettingPage({super.key});
@@ -60,6 +60,13 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                 ],
               ),
             ],
+          ),
+        ),
+        VerticalDivider(thickness: 1),
+        Expanded(
+          child: Container(
+            padding: EdgeInsets.all(16),
+            child: Center(child: Text('设置内容')),
           ),
         ),
       ],
