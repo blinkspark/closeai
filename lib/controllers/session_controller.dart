@@ -7,11 +7,17 @@ class SessionController extends GetxController {
   final Isar isar = Get.find();
   final sessions = <Rx<Session>>[].obs;
   final index = 0.obs;
+  final editingTitle = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     loadSessions();
+  }
+
+  void setIndex(int idx) {
+    index.value = idx;
+    editingTitle.value = false;
   }
 
   Future<void> loadSessions() async {

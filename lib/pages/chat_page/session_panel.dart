@@ -67,7 +67,7 @@ class SessionItem extends StatelessWidget {
         },
       ),
       onTap: () {
-        sessionController.index.value = index;
+        sessionController.setIndex(index);
       },
     );
   }

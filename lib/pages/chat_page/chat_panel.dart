@@ -1,7 +1,7 @@
+import 'package:closeai/pages/chat_page/chat_panel/message_list.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../controllers/chat_controller.dart';
 import '../../controllers/session_controller.dart';
 
 class ChatPanel extends StatelessWidget {
@@ -10,11 +10,11 @@ class ChatPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final SessionController sessionController = Get.find();
-    final ChatController chatController = ChatController();
     return Obx(() {
       final index = sessionController.index.value;
+      final isEmpty = sessionController.sessions.isEmpty;
       final sessionTitleController = TextEditingController(
-        text: sessionController.sessions[index].value.title,
+        text: isEmpty ? '' : sessionController.sessions[index].value.title,
       );
       return Column(
         children: [
@@ -25,32 +25,36 @@ class ChatPanel extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: sessionTitleController,
-                    enabled: chatController.editingTitle.value,
+                    enabled: sessionController.editingTitle.value,
                   ),
                 ),
                 IconButton(
-                  onPressed: () {},
+                  onPressed: isEmpty ? null : () {},
                   icon: Icon(Icons.assistant),
                   tooltip: '生成标题',
                 ),
                 IconButton(
-                  onPressed: () {
-                    if (chatController.editingTitle.value) {
-                      final session = sessionController.sessions[index].value;
-                      session.title = sessionTitleController.text;
-                      sessionController.sessions[index].value = session;
-                      sessionController.updateSession(session);
-                    }
-                    chatController.editingTitle.value =
-                        !chatController.editingTitle.value;
-                  },
+                  onPressed:
+                      isEmpty
+                          ? null
+                          : () {
+                            if (sessionController.editingTitle.value) {
+                              final session =
+                                  sessionController.sessions[index].value;
+                              session.title = sessionTitleController.text;
+                              sessionController.sessions[index].value = session;
+                              sessionController.updateSession(session);
+                            }
+                            sessionController.editingTitle.value =
+                                !sessionController.editingTitle.value;
+                          },
                   icon: Icon(Icons.edit),
                   tooltip: '编辑标题',
                 ),
               ],
             ),
           ),
-          Expanded(child: Center(child: Text('Chat Message List'))),
+          Expanded(child: MessageList()),
           Divider(height: 1),
           // Chat Input
           Container(
@@ -69,6 +73,7 @@ class ChatPanel extends StatelessWidget {
                       Expanded(
                         child: TextField(
                           decoration: InputDecoration(
+                            enabled: !isEmpty,
                             hintText: '输入内容',
                             border: OutlineInputBorder(),
                           ),
@@ -76,7 +81,7 @@ class ChatPanel extends StatelessWidget {
                       ),
                       SizedBox(width: 16),
                       IconButton(
-                        onPressed: () {},
+                        onPressed: isEmpty ? null : () {},
                         icon: Icon(Icons.send),
                         tooltip: '发送',
                       ),
