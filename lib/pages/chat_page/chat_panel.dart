@@ -35,6 +35,12 @@ class ChatPanel extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: () {
+                    if (chatController.editingTitle.value) {
+                      final session = sessionController.sessions[index].value;
+                      session.title = sessionTitleController.text;
+                      sessionController.sessions[index].value = session;
+                      sessionController.updateSession(session);
+                    }
                     chatController.editingTitle.value =
                         !chatController.editingTitle.value;
                   },

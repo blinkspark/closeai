@@ -31,10 +31,13 @@ class SessionPanel extends StatelessWidget {
                 return ListView.builder(
                   itemCount: sessionController.sessions.length,
                   itemBuilder: (ctx, idx) {
-                    return SessionItem(
-                      index: idx,
-                      title: sessionController.sessions[idx].value.title,
-                    );
+                    return Obx(() {
+                      final session = sessionController.sessions[idx];
+                      return SessionItem(
+                        index: idx,
+                        title: session.value.title,
+                      );
+                    });
                   },
                 );
               }),

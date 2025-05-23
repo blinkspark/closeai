@@ -28,6 +28,12 @@ class SessionController extends GetxController {
     });
   }
 
+  Future<void> updateSession(Session session) async {
+    await isar.writeTxn(() async {
+      await isar.sessions.put(session);
+    });
+  }
+
   Future<void> removeSession(int idx) async {
     await isar.writeTxn(() async {
       final id = sessions[idx].value.id;
