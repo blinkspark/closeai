@@ -8,20 +8,42 @@ class SessionController extends GetxController {
   final sessions = <Rx<Session>>[].obs;
   final index = 0.obs;
   final editingTitle = false.obs;
+  final messages = <Message>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    loadSessions();
+    loadSessions().then((_) {
+      if (sessions.isNotEmpty) {
+        loadMessages();
+      }
+    });
   }
 
   void setIndex(int idx) {
     index.value = idx;
     editingTitle.value = false;
+    loadMessages();
+  }
+
+  void loadMessages() {
+    messages.clear();
+    if (sessions.isNotEmpty) {
+      messages.addAll(sessions[index.value].value.messages);
+    }
+  }
+
+  void addMessage(Message message) {
+    sessions[index.value].value.messages.add(message);
+    messages.add(message);
+    updateSession(sessions[index.value].value);
   }
 
   Future<void> loadSessions() async {
     final sessions = await isar.sessions.where().findAll();
+    for (final session in sessions) {
+      session.messages = List<Message>.from(session.messages);
+    }
     this.sessions.addAll(sessions.map((e) => e.obs));
   }
 
@@ -30,7 +52,7 @@ class SessionController extends GetxController {
     await isar.writeTxn(() async {
       await isar.sessions.put(session);
       sessions.add(session.obs);
-      index.value = sessions.length - 1;
+      setIndex(sessions.length - 1);
     });
   }
 
@@ -48,6 +70,7 @@ class SessionController extends GetxController {
       if (idx <= index.value) {
         index.value = index.value > 0 ? index.value - 1 : 0;
       }
+      loadMessages();
     });
   }
 }

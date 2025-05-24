@@ -1,3 +1,5 @@
+import 'package:closeai/defs.dart';
+import 'package:closeai/models/session.dart';
 import 'package:closeai/pages/chat_page/chat_panel/message_list.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,6 +12,7 @@ class ChatPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final SessionController sessionController = Get.find();
+    final inputController = TextEditingController();
     return Obx(() {
       final index = sessionController.index.value;
       final isEmpty = sessionController.sessions.isEmpty;
@@ -72,6 +75,7 @@ class ChatPanel extends StatelessWidget {
                     children: [
                       Expanded(
                         child: TextField(
+                          controller: inputController,
                           decoration: InputDecoration(
                             enabled: !isEmpty,
                             hintText: '输入内容',
@@ -81,7 +85,17 @@ class ChatPanel extends StatelessWidget {
                       ),
                       SizedBox(width: 16),
                       IconButton(
-                        onPressed: isEmpty ? null : () {},
+                        onPressed:
+                            isEmpty
+                                ? null
+                                : () {
+                                  sessionController.addMessage(
+                                    Message()
+                                      ..content = inputController.text
+                                      ..role = MessageRole.user,
+                                  );
+                                  inputController.clear();
+                                },
                         icon: Icon(Icons.send),
                         tooltip: '发送',
                       ),

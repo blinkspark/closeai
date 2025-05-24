@@ -1,25 +1,35 @@
+import 'package:closeai/controllers/session_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class MessageList extends StatelessWidget {
   const MessageList({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final SessionController sessionController = Get.find();
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: ListView.builder(
-        itemCount: 10,
-        itemBuilder: (context, idx) {
-          return MessageWidget(isUser: idx % 2 == 0);
-        },
-      ),
+      child: Obx(() {
+        final messages = sessionController.messages;
+        return ListView.builder(
+          itemCount: messages.length,
+          itemBuilder: (context, idx) {
+            return MessageWidget(
+              isUser: messages[idx].role == 'user',
+              message: messages[idx].content,
+            );
+          },
+        );
+      }),
     );
   }
 }
 
 class MessageWidget extends StatelessWidget {
-  bool isUser = false;
-  MessageWidget({super.key, this.isUser = false});
+  final bool isUser;
+  final String message;
+  const MessageWidget({super.key, required this.message, this.isUser = false});
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +52,7 @@ class MessageWidget extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Hello, how are you? Hello, how are you? Hello, how are you? Hello, how are you?',
+                  message,
                   style: TextStyle(
                     color:
                         isUser
