@@ -1,6 +1,7 @@
-import 'package:closeai/controllers/session_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../../../controllers/session_controller.dart';
 
 class MessageList extends StatelessWidget {
   const MessageList({super.key});

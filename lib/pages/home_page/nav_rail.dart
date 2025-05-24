@@ -1,6 +1,7 @@
-import 'package:closeai/controllers/app_state_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../../controllers/app_state_controller.dart';
 
 class NavRail extends StatelessWidget {
   const NavRail({super.key});

@@ -1,6 +1,7 @@
-import 'package:closeai/models/provider.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+
+import '../models/provider.dart';
 
 class ProviderController extends GetxController {
   @override
@@ -21,6 +22,7 @@ class ProviderController extends GetxController {
   }
 
   Future<void> loadProviders() async {
+    this.providers.clear();
     final providers = await isar.providers.where().findAll();
     this.providers.addAll(providers.map((e) => e.obs));
   }
@@ -30,5 +32,9 @@ class ProviderController extends GetxController {
       await isar.providers.delete(providers[index].value.id);
       providers.removeAt(index);
     });
+  }
+
+  Future<void> reset() async {
+    await loadProviders();
   }
 }

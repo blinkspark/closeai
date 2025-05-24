@@ -51,4 +51,10 @@ class AppStateController extends GetxController {
     final json = jsonEncode(toJson());
     await configFile.writeAsString(json);
   }
+
+  Future<void> reset() async {
+    await isar.writeTxn(() async {
+      await isar.clear();
+    });
+  }
 }

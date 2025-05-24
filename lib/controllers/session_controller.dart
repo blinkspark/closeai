@@ -26,7 +26,7 @@ class SessionController extends GetxController {
     loadMessages();
   }
 
-  void loadMessages() {
+  Future<void> loadMessages() async {
     messages.clear();
     if (sessions.isNotEmpty) {
       messages.addAll(sessions[index.value].value.messages);
@@ -40,6 +40,7 @@ class SessionController extends GetxController {
   }
 
   Future<void> loadSessions() async {
+    this.sessions.clear();
     final sessions = await isar.sessions.where().findAll();
     for (final session in sessions) {
       session.messages = List<Message>.from(session.messages);
@@ -72,5 +73,11 @@ class SessionController extends GetxController {
       }
       loadMessages();
     });
+  }
+
+  Future<void> reset() async {
+    
+    await loadSessions();
+    await loadMessages();
   }
 }

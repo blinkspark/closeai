@@ -1,5 +1,3 @@
-import 'package:closeai/controllers/session_controller.dart';
-import 'package:closeai/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,9 +6,11 @@ import 'package:path_provider/path_provider.dart';
 
 import 'controllers/app_state_controller.dart';
 import 'controllers/provider_controller.dart';
+import 'controllers/session_controller.dart';
 import 'models/model.dart';
 import 'models/provider.dart';
 import 'models/session.dart';
+import 'pages/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/app_state_controller.dart';
+import '../controllers/provider_controller.dart';
+import '../controllers/session_controller.dart';
 import 'setting_page/setting_section.dart';
 
 class SettingPage extends GetResponsiveView<AppStateController> {
@@ -55,7 +57,11 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                   SettingSectionItem(
                     title: '重置',
                     isDanger: true,
-                    onPressed: () {},
+                    onPressed: () async {
+                      await controller.reset();
+                      Get.find<SessionController>().reset();
+                      Get.find<ProviderController>().reset();
+                    },
                   ),
                 ],
               ),
