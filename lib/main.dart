@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'clients/openai.dart';
 import 'controllers/app_state_controller.dart';
 import 'controllers/provider_controller.dart';
 import 'controllers/session_controller.dart';
@@ -23,6 +24,7 @@ void main() async {
       SessionSchema,
     ], directory: supportPath);
   });
+  Get.put(OpenAI());
   Get.put(AppStateController());
   Get.put(ProviderController());
   Get.put(SessionController());
