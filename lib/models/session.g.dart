@@ -27,19 +27,13 @@ const SessionSchema = CollectionSchema(
       name: r'description',
       type: IsarType.string,
     ),
-    r'messages': PropertySchema(
-      id: 2,
-      name: r'messages',
-      type: IsarType.objectList,
-      target: r'Message',
-    ),
     r'title': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'title',
       type: IsarType.string,
     ),
     r'updateTime': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'updateTime',
       type: IsarType.dateTime,
     )
@@ -50,8 +44,16 @@ const SessionSchema = CollectionSchema(
   deserializeProp: _sessionDeserializeProp,
   idName: r'id',
   indexes: {},
-  links: {},
-  embeddedSchemas: {r'Message': MessageSchema},
+  links: {
+    r'messages': LinkSchema(
+      id: 432470525211447987,
+      name: r'messages',
+      target: r'Message',
+      single: false,
+      linkName: r'session',
+    )
+  },
+  embeddedSchemas: {},
   getId: _sessionGetId,
   getLinks: _sessionGetLinks,
   attach: _sessionAttach,
@@ -70,14 +72,6 @@ int _sessionEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.messages.length * 3;
-  {
-    final offsets = allOffsets[Message]!;
-    for (var i = 0; i < object.messages.length; i++) {
-      final value = object.messages[i];
-      bytesCount += MessageSchema.estimateSize(value, offsets, allOffsets);
-    }
-  }
   bytesCount += 3 + object.title.length * 3;
   return bytesCount;
 }
@@ -90,14 +84,8 @@ void _sessionSerialize(
 ) {
   writer.writeDateTime(offsets[0], object.createTime);
   writer.writeString(offsets[1], object.description);
-  writer.writeObjectList<Message>(
-    offsets[2],
-    allOffsets,
-    MessageSchema.serialize,
-    object.messages,
-  );
-  writer.writeString(offsets[3], object.title);
-  writer.writeDateTime(offsets[4], object.updateTime);
+  writer.writeString(offsets[2], object.title);
+  writer.writeDateTime(offsets[3], object.updateTime);
 }
 
 Session _sessionDeserialize(
@@ -110,15 +98,8 @@ Session _sessionDeserialize(
   object.createTime = reader.readDateTime(offsets[0]);
   object.description = reader.readStringOrNull(offsets[1]);
   object.id = id;
-  object.messages = reader.readObjectList<Message>(
-        offsets[2],
-        MessageSchema.deserialize,
-        allOffsets,
-        Message(),
-      ) ??
-      [];
-  object.title = reader.readString(offsets[3]);
-  object.updateTime = reader.readDateTime(offsets[4]);
+  object.title = reader.readString(offsets[2]);
+  object.updateTime = reader.readDateTime(offsets[3]);
   return object;
 }
 
@@ -134,16 +115,8 @@ P _sessionDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readObjectList<Message>(
-            offset,
-            MessageSchema.deserialize,
-            allOffsets,
-            Message(),
-          ) ??
-          []) as P;
-    case 3:
       return (reader.readString(offset)) as P;
-    case 4:
+    case 3:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -155,11 +128,12 @@ Id _sessionGetId(Session object) {
 }
 
 List<IsarLinkBase<dynamic>> _sessionGetLinks(Session object) {
-  return [];
+  return [object.messages];
 }
 
 void _sessionAttach(IsarCollection<dynamic> col, Id id, Session object) {
   object.id = id;
+  object.messages.attach(col, col.isar.collection<Message>(), r'messages', id);
 }
 
 extension SessionQueryWhereSort on QueryBuilder<Session, Session, QWhere> {
@@ -491,91 +465,6 @@ extension SessionQueryFilter
     });
   }
 
-  QueryBuilder<Session, Session, QAfterFilterCondition> messagesLengthEqualTo(
-      int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'messages',
-        length,
-        true,
-        length,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Session, Session, QAfterFilterCondition> messagesIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'messages',
-        0,
-        true,
-        0,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Session, Session, QAfterFilterCondition> messagesIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'messages',
-        0,
-        false,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Session, Session, QAfterFilterCondition> messagesLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'messages',
-        0,
-        true,
-        length,
-        include,
-      );
-    });
-  }
-
-  QueryBuilder<Session, Session, QAfterFilterCondition>
-      messagesLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'messages',
-        length,
-        include,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Session, Session, QAfterFilterCondition> messagesLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'messages',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
-    });
-  }
-
   QueryBuilder<Session, Session, QAfterFilterCondition> titleEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -761,17 +650,67 @@ extension SessionQueryFilter
 }
 
 extension SessionQueryObject
+    on QueryBuilder<Session, Session, QFilterCondition> {}
+
+extension SessionQueryLinks
     on QueryBuilder<Session, Session, QFilterCondition> {
-  QueryBuilder<Session, Session, QAfterFilterCondition> messagesElement(
+  QueryBuilder<Session, Session, QAfterFilterCondition> messages(
       FilterQuery<Message> q) {
     return QueryBuilder.apply(this, (query) {
-      return query.object(q, r'messages');
+      return query.link(q, r'messages');
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition> messagesLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'messages', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition> messagesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'messages', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition> messagesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'messages', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition> messagesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'messages', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition>
+      messagesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'messages', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<Session, Session, QAfterFilterCondition> messagesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(
+          r'messages', lower, includeLower, upper, includeUpper);
     });
   }
 }
-
-extension SessionQueryLinks
-    on QueryBuilder<Session, Session, QFilterCondition> {}
 
 extension SessionQuerySortBy on QueryBuilder<Session, Session, QSortBy> {
   QueryBuilder<Session, Session, QAfterSortBy> sortByCreateTime() {
@@ -935,12 +874,6 @@ extension SessionQueryProperty
     });
   }
 
-  QueryBuilder<Session, List<Message>, QQueryOperations> messagesProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'messages');
-    });
-  }
-
   QueryBuilder<Session, String, QQueryOperations> titleProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'title');
@@ -953,408 +886,3 @@ extension SessionQueryProperty
     });
   }
 }
-
-// **************************************************************************
-// IsarEmbeddedGenerator
-// **************************************************************************
-
-// coverage:ignore-file
-// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
-
-const MessageSchema = Schema(
-  name: r'Message',
-  id: 2463283977299753079,
-  properties: {
-    r'content': PropertySchema(
-      id: 0,
-      name: r'content',
-      type: IsarType.string,
-    ),
-    r'role': PropertySchema(
-      id: 1,
-      name: r'role',
-      type: IsarType.string,
-    ),
-    r'timestamp': PropertySchema(
-      id: 2,
-      name: r'timestamp',
-      type: IsarType.dateTime,
-    )
-  },
-  estimateSize: _messageEstimateSize,
-  serialize: _messageSerialize,
-  deserialize: _messageDeserialize,
-  deserializeProp: _messageDeserializeProp,
-);
-
-int _messageEstimateSize(
-  Message object,
-  List<int> offsets,
-  Map<Type, List<int>> allOffsets,
-) {
-  var bytesCount = offsets.last;
-  bytesCount += 3 + object.content.length * 3;
-  bytesCount += 3 + object.role.length * 3;
-  return bytesCount;
-}
-
-void _messageSerialize(
-  Message object,
-  IsarWriter writer,
-  List<int> offsets,
-  Map<Type, List<int>> allOffsets,
-) {
-  writer.writeString(offsets[0], object.content);
-  writer.writeString(offsets[1], object.role);
-  writer.writeDateTime(offsets[2], object.timestamp);
-}
-
-Message _messageDeserialize(
-  Id id,
-  IsarReader reader,
-  List<int> offsets,
-  Map<Type, List<int>> allOffsets,
-) {
-  final object = Message();
-  object.content = reader.readString(offsets[0]);
-  object.role = reader.readString(offsets[1]);
-  object.timestamp = reader.readDateTime(offsets[2]);
-  return object;
-}
-
-P _messageDeserializeProp<P>(
-  IsarReader reader,
-  int propertyId,
-  int offset,
-  Map<Type, List<int>> allOffsets,
-) {
-  switch (propertyId) {
-    case 0:
-      return (reader.readString(offset)) as P;
-    case 1:
-      return (reader.readString(offset)) as P;
-    case 2:
-      return (reader.readDateTime(offset)) as P;
-    default:
-      throw IsarError('Unknown property with id $propertyId');
-  }
-}
-
-extension MessageQueryFilter
-    on QueryBuilder<Message, Message, QFilterCondition> {
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'content',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'content',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'content',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'content',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'content',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'content',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'content',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'content',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'content',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> contentIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'content',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'role',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'role',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'role',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'role',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'role',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'role',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'role',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'role',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'role',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> roleIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'role',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> timestampEqualTo(
-      DateTime value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'timestamp',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> timestampGreaterThan(
-    DateTime value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'timestamp',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> timestampLessThan(
-    DateTime value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'timestamp',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> timestampBetween(
-    DateTime lower,
-    DateTime upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'timestamp',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-}
-
-extension MessageQueryObject
-    on QueryBuilder<Message, Message, QFilterCondition> {}

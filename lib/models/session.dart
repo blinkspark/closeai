@@ -1,4 +1,5 @@
 import 'package:isar/isar.dart';
+import 'message.dart';
 
 part 'session.g.dart';
 
@@ -7,18 +8,10 @@ class Session {
   Id id = Isar.autoIncrement;
   late String title;
   String? description;
-  List<Message> messages = [];
   DateTime createTime = DateTime.now();
   DateTime updateTime = DateTime.now();
-}
-
-@embedded
-class Message {
-  late String role;
-  late String content;
-  DateTime timestamp = DateTime.now();
-
-  Map<String, dynamic> toJson() {
-    return {'role': role, 'content': content};
-  }
+  
+  // 通过反向链接获取消息
+  @Backlink(to: 'session')
+  final messages = IsarLinks<Message>();
 }

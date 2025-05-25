@@ -1,5 +1,5 @@
 import 'package:closeai/defs.dart';
-import 'package:closeai/models/session.dart';
+import 'package:closeai/models/message.dart';
 import 'package:closeai/pages/chat_page/chat_panel/message_list.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
