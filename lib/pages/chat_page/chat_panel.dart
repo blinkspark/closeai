@@ -88,8 +88,8 @@ class ChatPanel extends StatelessWidget {
                         onPressed:
                             isEmpty
                                 ? null
-                                : () {
-                                  sessionController.addMessage(
+                                : () async {
+                                  await sessionController.sendMessage(
                                     Message()
                                       ..content = inputController.text
                                       ..role = MessageRole.user,

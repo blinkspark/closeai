@@ -1,6 +1,8 @@
+import 'package:closeai/defs.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 
+import '../clients/openai.dart';
 import '../models/session.dart';
 
 class SessionController extends GetxController {
@@ -9,6 +11,7 @@ class SessionController extends GetxController {
   final index = 0.obs;
   final editingTitle = false.obs;
   final messages = <Message>[].obs;
+  final sendingMessage = false.obs;
 
   @override
   void onInit() {
@@ -33,10 +36,24 @@ class SessionController extends GetxController {
     }
   }
 
-  void addMessage(Message message) {
+  Future<void> sendMessage(Message message) async {
+    sendingMessage.value = true;
+    final OpenAI openai = Get.find();
     sessions[index.value].value.messages.add(message);
     messages.add(message);
-    updateSession(sessions[index.value].value);
+    final jsonMessages = messages.map((e) => e.toJson()).toList();
+    final response = await openai.chat.completions.create(
+      model: 'meta-llama/llama-3.3-8b-instruct:free',
+      messages: jsonMessages,
+    );
+    final responseMessage =
+        Message()
+          ..role = MessageRole.assistant
+          ..content = response['choices'][0]['message']['content'];
+    sessions[index.value].value.messages.add(responseMessage);
+    messages.add(responseMessage);
+    await updateSession(sessions[index.value].value);
+    sendingMessage.value = false;
   }
 
   Future<void> loadSessions() async {
@@ -76,7 +93,6 @@ class SessionController extends GetxController {
   }
 
   Future<void> reset() async {
-    
     await loadSessions();
     await loadMessages();
   }

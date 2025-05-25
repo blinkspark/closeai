@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,7 +26,9 @@ void main() async {
       SessionSchema,
     ], directory: supportPath);
   });
-  Get.put(OpenAI());
+  final apiKey = Platform.environment['OR_API_KEY'];
+  assert(apiKey != null);
+  Get.put(OpenAI(baseUrl: 'https://openrouter.ai/api/v1', apiKey: apiKey));
   Get.put(AppStateController());
   Get.put(ProviderController());
   Get.put(SessionController());

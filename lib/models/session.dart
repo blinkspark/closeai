@@ -17,4 +17,8 @@ class Message {
   late String role;
   late String content;
   DateTime timestamp = DateTime.now();
+
+  Map<String, dynamic> toJson() {
+    return {'role': role, 'content': content};
+  }
 }
