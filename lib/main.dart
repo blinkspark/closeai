@@ -16,27 +16,18 @@ import 'models/provider.dart';
 import 'models/session.dart';
 import 'models/message.dart';
 import 'pages/home_page.dart';
-import 'utils/database_migration.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final dir = await getApplicationSupportDirectory();
   final supportPath = dir.path;
   await Get.putAsync(() async {
-    final isar = await Isar.open([
+    return await Isar.open([
       ProviderSchema,
       ModelSchema,
       SessionSchema,
       MessageSchema,
     ], directory: supportPath);
-    
-    // 检查是否需要数据库迁移
-    if (await DatabaseMigration.needsMigration(isar)) {
-      print('检测到需要数据库迁移');
-      await DatabaseMigration.migrateMessagesToCollection(isar);
-    }
-    
-    return isar;
   });
   final apiKey = Platform.environment['OR_API_KEY'];
   assert(apiKey != null);
