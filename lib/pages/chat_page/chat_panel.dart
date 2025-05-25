@@ -2,6 +2,7 @@ import 'package:closeai/defs.dart';
 import 'package:closeai/models/message.dart';
 import 'package:closeai/pages/chat_page/chat_panel/message_list.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../controllers/session_controller.dart';
@@ -72,14 +73,33 @@ class ChatPanel extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.all(16),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
-                        child: TextField(
-                          controller: inputController,
-                          decoration: InputDecoration(
-                            enabled: !isEmpty,
-                            hintText: '输入内容',
-                            border: OutlineInputBorder(),
+                        child: CallbackShortcuts(
+                          bindings: {
+                            const SingleActivator(LogicalKeyboardKey.enter): () {
+                              // 单独按Enter: 发送消息
+                              if (!isEmpty && inputController.text.trim().isNotEmpty) {
+                                _sendMessage(sessionController, inputController);
+                              }
+                            },
+                          },
+                          child: TextField(
+                            controller: inputController,
+                            maxLines: null,
+                            minLines: 1,
+                            keyboardType: TextInputType.multiline,
+                            textInputAction: TextInputAction.newline,
+                            decoration: InputDecoration(
+                              enabled: !isEmpty,
+                              hintText: '输入内容 (Enter发送, Shift+Enter换行)',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -88,14 +108,7 @@ class ChatPanel extends StatelessWidget {
                         onPressed:
                             isEmpty
                                 ? null
-                                : () async {
-                                  await sessionController.sendMessage(
-                                    Message()
-                                      ..content = inputController.text
-                                      ..role = MessageRole.user,
-                                  );
-                                  inputController.clear();
-                                },
+                                : () => _sendMessage(sessionController, inputController),
                         icon: Icon(Icons.send),
                         tooltip: '发送',
                       ),
@@ -108,5 +121,19 @@ class ChatPanel extends StatelessWidget {
         ],
       );
     });
+  }
+
+  Future<void> _sendMessage(SessionController sessionController, TextEditingController inputController) async {
+    if (inputController.text.trim().isEmpty) return;
+    
+    final content = inputController.text.trim();
+    inputController.clear(); // 立即清空输入框
+    
+    // 异步发送消息，不等待完成
+    sessionController.sendMessage(
+      Message()
+        ..content = content
+        ..role = MessageRole.user,
+    );
   }
 }
