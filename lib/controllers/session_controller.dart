@@ -1,121 +1,142 @@
 import 'package:closeai/defs.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
 
 import '../clients/openai.dart';
 import '../models/session.dart';
 import '../models/message.dart';
+import '../services/session_service.dart';
+import '../services/message_service.dart';
 import 'chat_controller.dart';
 
+/// 会话控制器，负责管理会话相关的UI状态和业务逻辑
 class SessionController extends GetxController {
-  final Isar isar = Get.find();
-  late final ChatController messageController;
+  late final SessionService _sessionService;
+  late final MessageService _messageService;
+  late final ChatController _chatController;
+  
+  // UI状态
   final sessions = <Rx<Session>>[].obs;
   final index = 0.obs;
   final editingTitle = false.obs;
-  final messages = <Message>[].obs;
   final sendingMessage = false.obs;
 
   @override
   void onInit() {
     super.onInit();
-    messageController = Get.find<ChatController>();
+    _sessionService = Get.find<SessionService>();
+    _messageService = Get.find<MessageService>();
+    _chatController = Get.find<ChatController>();
+    
     loadSessions().then((_) {
       if (sessions.isNotEmpty) {
-        loadMessages();
+        setIndex(0);
       }
     });
   }
 
+  /// 设置当前选中的会话索引
   void setIndex(int idx) {
     index.value = idx;
     editingTitle.value = false;
-    loadMessages();
-  }
-
-  Future<void> loadMessages() async {
-    messages.clear();
-    if (sessions.isNotEmpty) {
-      final sessionId = sessions[index.value].value.id;
-      final sessionMessages = await messageController.getMessagesBySessionId(sessionId);
-      messages.addAll(sessionMessages);
+    
+    if (sessions.isNotEmpty && idx < sessions.length) {
+      final sessionId = sessions[idx].value.id;
+      _chatController.loadMessages(sessionId);
     }
   }
 
+  /// 发送消息
   Future<void> sendMessage(Message message) async {
+    if (sessions.isEmpty) return;
+    
     sendingMessage.value = true;
-    final OpenAI openai = Get.find();
-    
-    // 使用MessageController创建用户消息
-    final userMessage = await messageController.createMessage(
-      role: message.role,
-      content: message.content,
-      session: sessions[index.value].value,
-    );
-    
-    messages.add(userMessage);
-    
-    final jsonMessages = messages.map((e) => e.toJson()).toList();
-    final response = await openai.chat.completions.create(
-      model: 'meta-llama/llama-3.3-8b-instruct:free',
-      messages: jsonMessages,
-    );
-    
-    // 使用MessageController创建助手回复
-    final responseMessage = await messageController.createMessage(
-      role: MessageRole.assistant,
-      content: response['choices'][0]['message']['content'],
-      session: sessions[index.value].value,
-    );
-    
-    messages.add(responseMessage);
-    await updateSession(sessions[index.value].value);
-    sendingMessage.value = false;
+    try {
+      final OpenAI openai = Get.find();
+      final currentSession = sessions[index.value].value;
+      
+      // 创建用户消息
+      await _chatController.addMessage(
+        role: message.role,
+        content: message.content,
+        session: currentSession,
+      );
+      
+      // 获取当前会话的所有消息用于API调用
+      final allMessages = await _messageService.getMessagesBySessionId(currentSession.id);
+      final jsonMessages = allMessages.map((e) => e.toJson()).toList();
+      
+      // 调用AI API
+      final response = await openai.chat.completions.create(
+        model: 'meta-llama/llama-3.3-8b-instruct:free',
+        messages: jsonMessages,
+      );
+      
+      // 创建助手回复
+      await _chatController.addMessage(
+        role: MessageRole.assistant,
+        content: response['choices'][0]['message']['content'],
+        session: currentSession,
+      );
+      
+      // 更新会话时间
+      await _sessionService.updateSession(currentSession);
+    } finally {
+      sendingMessage.value = false;
+    }
   }
 
+  /// 加载所有会话
   Future<void> loadSessions() async {
-    sessions.clear();
-    final sessionList = await isar.sessions.where().findAll();
-    sessions.addAll(sessionList.map((e) => e.obs));
+    final sessionList = await _sessionService.loadSessions();
+    sessions.assignAll(sessionList.map((e) => e.obs));
   }
 
+  /// 创建新会话
   Future<void> newSession(String title) async {
-    final session = Session()..title = title;
-    await isar.writeTxn(() async {
-      await isar.sessions.put(session);
-      sessions.add(session.obs);
-      setIndex(sessions.length - 1);
-    });
+    final session = await _sessionService.createSession(title);
+    sessions.add(session.obs);
+    setIndex(sessions.length - 1);
   }
 
+  /// 更新会话
   Future<void> updateSession(Session session) async {
-    session.updateTime = DateTime.now();
-    await isar.writeTxn(() async {
-      await isar.sessions.put(session);
-    });
+    await _sessionService.updateSession(session);
   }
 
+  /// 删除会话
   Future<void> removeSession(int idx) async {
+    if (idx >= sessions.length) return;
+    
     final sessionId = sessions[idx].value.id;
     
-    // 使用MessageController删除该会话的所有消息
-    await messageController.deleteMessagesBySessionId(sessionId);
+    // 删除该会话的所有消息
+    await _messageService.deleteMessagesBySessionId(sessionId);
     
     // 删除会话
-    await isar.writeTxn(() async {
-      await isar.sessions.delete(sessionId);
-    });
+    await _sessionService.deleteSession(sessionId);
     
+    // 从UI列表中移除
     sessions.removeAt(idx);
     
-    if (idx <= index.value) {
-      index.value = index.value > 0 ? index.value - 1 : 0;
+    // 调整当前选中的索引
+    if (sessions.isEmpty) {
+      index.value = 0;
+      _chatController.clearMessages();
+    } else {
+      if (idx <= index.value) {
+        index.value = index.value > 0 ? index.value - 1 : 0;
+      }
+      setIndex(index.value);
     }
-    loadMessages();
   }
 
+  /// 重置数据
   Future<void> reset() async {
     await loadSessions();
-    await loadMessages();
+    if (sessions.isNotEmpty) {
+      setIndex(0);
+    } else {
+      _chatController.clearMessages();
+    }
   }
 }

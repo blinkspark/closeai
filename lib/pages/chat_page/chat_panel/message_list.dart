@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../controllers/session_controller.dart';
+import '../../../controllers/chat_controller.dart';
 
 class MessageList extends StatelessWidget {
   const MessageList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final SessionController sessionController = Get.find();
+    final ChatController chatController = Get.find();
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Obx(() {
-        final messages = sessionController.messages;
+        final messages = chatController.messages;
+        if (chatController.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
         return ListView.builder(
           itemCount: messages.length,
           itemBuilder: (context, idx) {

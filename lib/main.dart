@@ -11,6 +11,10 @@ import 'controllers/app_state_controller.dart';
 import 'controllers/provider_controller.dart';
 import 'controllers/session_controller.dart';
 import 'controllers/chat_controller.dart';
+import 'services/message_service.dart';
+import 'services/message_service_impl.dart';
+import 'services/session_service.dart';
+import 'services/session_service_impl.dart';
 import 'models/model.dart';
 import 'models/provider.dart';
 import 'models/session.dart';
@@ -32,6 +36,12 @@ void main() async {
   final apiKey = Platform.environment['OR_API_KEY'];
   assert(apiKey != null);
   Get.put(OpenAI(baseUrl: 'https://openrouter.ai/api/v1', apiKey: apiKey));
+  
+  // 注册服务层
+  Get.put<MessageService>(MessageServiceImpl());
+  Get.put<SessionService>(SessionServiceImpl());
+  
+  // 注册控制器
   Get.put(AppStateController());
   Get.put(ProviderController());
   Get.put(ChatController());
