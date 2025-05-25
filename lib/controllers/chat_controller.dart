@@ -4,7 +4,7 @@ import 'package:isar/isar.dart';
 import '../models/message.dart';
 import '../models/session.dart';
 
-class MessageController extends GetxController {
+class ChatController extends GetxController {
   final Isar isar = Get.find();
 
   // 根据会话ID获取消息列表

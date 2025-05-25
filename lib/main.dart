@@ -10,7 +10,7 @@ import 'clients/openai.dart';
 import 'controllers/app_state_controller.dart';
 import 'controllers/provider_controller.dart';
 import 'controllers/session_controller.dart';
-import 'controllers/message_controller.dart';
+import 'controllers/chat_controller.dart';
 import 'models/model.dart';
 import 'models/provider.dart';
 import 'models/session.dart';
@@ -34,7 +34,7 @@ void main() async {
   Get.put(OpenAI(baseUrl: 'https://openrouter.ai/api/v1', apiKey: apiKey));
   Get.put(AppStateController());
   Get.put(ProviderController());
-  Get.put(MessageController());
+  Get.put(ChatController());
   Get.put(SessionController());
   runApp(const MainApp());
 }

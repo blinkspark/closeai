@@ -5,11 +5,11 @@ import 'package:isar/isar.dart';
 import '../clients/openai.dart';
 import '../models/session.dart';
 import '../models/message.dart';
-import 'message_controller.dart';
+import 'chat_controller.dart';
 
 class SessionController extends GetxController {
   final Isar isar = Get.find();
-  late final MessageController messageController;
+  late final ChatController messageController;
   final sessions = <Rx<Session>>[].obs;
   final index = 0.obs;
   final editingTitle = false.obs;
@@ -19,7 +19,7 @@ class SessionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    messageController = Get.find<MessageController>();
+    messageController = Get.find<ChatController>();
     loadSessions().then((_) {
       if (sessions.isNotEmpty) {
         loadMessages();
