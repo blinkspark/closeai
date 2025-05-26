@@ -8,6 +8,7 @@ import '../controllers/session_controller.dart';
 import 'setting_page/setting_section.dart';
 import 'setting_page/provider_setting_page.dart';
 import 'setting_page/model_setting_page.dart';
+import 'setting_page/system_prompt_setting_page.dart';
 import 'setting_page/config_status_widget.dart';
 
 class SettingPage extends GetResponsiveView<AppStateController> {
@@ -43,6 +44,12 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                     title: '模型管理',
                     onPressed: () {
                       Get.to(() => ModelSettingPage());
+                    },
+                  ),
+                  SettingSectionItem(
+                    title: '系统提示词',
+                    onPressed: () {
+                      Get.to(() => SystemPromptSettingPage());
                     },
                   ),
                 ],

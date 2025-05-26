@@ -8,6 +8,7 @@ import '../services/session_service.dart';
 import '../services/message_service.dart';
 import '../services/openai_service.dart';
 import 'chat_controller.dart';
+import 'system_prompt_controller.dart';
 
 /// 会话控制器，负责管理会话相关的UI状态和业务逻辑
 class SessionController extends GetxController {
@@ -77,6 +78,16 @@ class SessionController extends GetxController {
       // 获取当前会话的所有消息用于API调用
       final allMessages = await _messageService.getMessagesBySessionId(currentSession.id);
       final jsonMessages = allMessages.map((e) => e.toJson()).toList();
+      
+      // 添加系统提示词
+      final systemPromptController = Get.find<SystemPromptController>();
+      final systemPromptContent = systemPromptController.getCurrentPromptContent();
+      if (systemPromptContent.isNotEmpty) {
+        jsonMessages.insert(0, {
+          'role': 'system',
+          'content': systemPromptContent,
+        });
+      }
       
       // 开始流式响应
       await sendStreamingMessage(jsonMessages, currentSession);

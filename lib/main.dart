@@ -8,15 +8,19 @@ import 'controllers/provider_controller.dart';
 import 'controllers/model_controller.dart';
 import 'controllers/session_controller.dart';
 import 'controllers/chat_controller.dart';
+import 'controllers/system_prompt_controller.dart';
 import 'services/message_service.dart';
 import 'services/message_service_impl.dart';
 import 'services/session_service.dart';
 import 'services/session_service_impl.dart';
+import 'services/system_prompt_service.dart';
+import 'services/system_prompt_service_impl.dart';
 import 'services/openai_service.dart';
 import 'models/model.dart';
 import 'models/provider.dart';
 import 'models/session.dart';
 import 'models/message.dart';
+import 'models/system_prompt.dart';
 import 'pages/home_page.dart';
 
 void main() async {
@@ -29,11 +33,13 @@ void main() async {
       ModelSchema,
       SessionSchema,
       MessageSchema,
+      SystemPromptSchema,
     ], directory: supportPath);
   });
   // 注册服务层
   Get.put<MessageService>(MessageServiceImpl());
   Get.put<SessionService>(SessionServiceImpl());
+  Get.put<SystemPromptService>(SystemPromptServiceImpl());
   
   // 注册控制器
   Get.put(AppStateController());
@@ -41,9 +47,17 @@ void main() async {
   Get.put(ModelController());
   Get.put(ChatController());
   Get.put(SessionController());
+  Get.put(SystemPromptController());
   
   // 注册OpenAI服务 - 使用动态配置
   Get.put(OpenAIService());
+  
+  // 初始化默认系统提示词
+  final systemPromptService = Get.find<SystemPromptService>();
+  if (systemPromptService is SystemPromptServiceImpl) {
+    await systemPromptService.initializeDefaultPrompts();
+  }
+  
   runApp(const MainApp());
 }
 
