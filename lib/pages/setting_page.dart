@@ -5,6 +5,7 @@ import '../controllers/app_state_controller.dart';
 import '../controllers/provider_controller.dart';
 import '../controllers/model_controller.dart';
 import '../controllers/session_controller.dart';
+import '../controllers/system_prompt_controller.dart';
 import 'setting_page/setting_section.dart';
 import 'setting_page/provider_setting_page.dart';
 import 'setting_page/model_setting_page.dart';
@@ -95,6 +96,10 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                       Get.find<ProviderController>().reset();
                       if (Get.isRegistered<ModelController>()) {
                         Get.find<ModelController>().reset();
+                      }
+                      // 重置系统提示词并重新初始化默认提示词
+                      if (Get.isRegistered<SystemPromptController>()) {
+                        await Get.find<SystemPromptController>().reset();
                       }
                     },
                   ),

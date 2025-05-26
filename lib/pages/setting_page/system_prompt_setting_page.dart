@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/system_prompt_controller.dart';
 import '../../models/system_prompt.dart';
+import '../../services/system_prompt_service.dart';
+import '../../services/system_prompt_service_impl.dart';
 
 class SystemPromptSettingPage extends StatelessWidget {
   const SystemPromptSettingPage({super.key});
@@ -14,10 +16,35 @@ class SystemPromptSettingPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('系统提示词管理'),
         actions: [
-          IconButton(
-            onPressed: () => _showCreateDialog(context, controller),
-            icon: Icon(Icons.add),
-            tooltip: '创建新预设',
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'create':
+                  _showCreateDialog(context, controller);
+                  break;
+                case 'reset':
+                  _showResetDialog(context, controller);
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'create',
+                child: ListTile(
+                  leading: Icon(Icons.add),
+                  title: Text('创建新预设'),
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'reset',
+                child: ListTile(
+                  leading: Icon(Icons.refresh, color: Colors.orange),
+                  title: Text('重置为默认', style: TextStyle(color: Colors.orange)),
+                  dense: true,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -330,6 +357,49 @@ class SystemPromptSettingPage extends StatelessWidget {
               foregroundColor: Colors.white,
             ),
             child: Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResetDialog(BuildContext context, SystemPromptController controller) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('重置系统提示词'),
+        content: Text('确定要重置所有系统提示词吗？这将删除所有自定义预设并恢复默认预设。此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // 清空所有系统提示词
+              final systemPromptService = Get.find<SystemPromptService>();
+              if (systemPromptService is SystemPromptServiceImpl) {
+                // 删除所有现有的系统提示词
+                final allPrompts = await systemPromptService.loadSystemPrompts();
+                for (final prompt in allPrompts) {
+                  await systemPromptService.deleteSystemPrompt(prompt.id);
+                }
+                
+                // 重新创建默认提示词
+                await systemPromptService.forceInitializeDefaultPrompts();
+              }
+              
+              // 重新加载控制器数据
+              await controller.loadSystemPrompts();
+              
+              Navigator.of(context).pop();
+              Get.snackbar('成功', '系统提示词已重置为默认设置');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('重置'),
           ),
         ],
       ),

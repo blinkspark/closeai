@@ -134,6 +134,16 @@ class SystemPromptServiceImpl implements SystemPromptService {
     final existingPrompts = await loadSystemPrompts();
     if (existingPrompts.isNotEmpty) return;
 
+    await _createDefaultPrompts();
+  }
+
+  /// 强制重新创建默认系统提示词（用于重置）
+  Future<void> forceInitializeDefaultPrompts() async {
+    await _createDefaultPrompts();
+  }
+
+  /// 创建默认提示词的具体实现
+  Future<void> _createDefaultPrompts() async {
     final defaultPrompts = [
       SystemPrompt.create(
         name: '默认助手',

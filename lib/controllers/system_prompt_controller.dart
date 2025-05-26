@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../models/system_prompt.dart';
 import '../services/system_prompt_service.dart';
+import '../services/system_prompt_service_impl.dart';
 
 class SystemPromptController extends GetxController {
   late final SystemPromptService _systemPromptService;
@@ -43,8 +44,20 @@ class SystemPromptController extends GetxController {
       final prompts = await _systemPromptService.loadSystemPrompts();
       systemPrompts.assignAll(prompts.map((e) => e.obs));
       
+      // 如果没有任何提示词，初始化默认提示词
+      if (prompts.isEmpty) {
+        final systemPromptService = Get.find<SystemPromptService>();
+        if (systemPromptService is SystemPromptServiceImpl) {
+          await systemPromptService.initializeDefaultPrompts();
+          // 重新加载
+          final newPrompts = await _systemPromptService.loadSystemPrompts();
+          systemPrompts.assignAll(newPrompts.map((e) => e.obs));
+        }
+      }
+      
       // 如果没有选中的提示词，选择默认的
-      if (selectedSystemPrompt.value == null && prompts.isNotEmpty) {
+      if (selectedSystemPrompt.value == null && systemPrompts.isNotEmpty) {
+        final prompts = systemPrompts.map((e) => e.value).toList();
         final defaultPrompt = prompts.firstWhere(
           (p) => p.isDefault,
           orElse: () => prompts.first,
@@ -231,5 +244,29 @@ class SystemPromptController extends GetxController {
       description: original.description,
       enableVariables: original.enableVariables,
     );
+  }
+
+  /// 重置系统提示词数据并重新初始化默认提示词
+  Future<void> reset() async {
+    try {
+      // 清空当前状态
+      systemPrompts.clear();
+      selectedSystemPrompt.value = null;
+      temporaryPromptContent.value = '';
+      useTemporaryContent.value = false;
+      searchQuery.value = '';
+      variables.clear();
+      
+      // 重新初始化默认提示词
+      final systemPromptService = Get.find<SystemPromptService>();
+      if (systemPromptService is SystemPromptServiceImpl) {
+        await systemPromptService.forceInitializeDefaultPrompts();
+      }
+      
+      // 重新加载以更新UI
+      await loadSystemPrompts();
+    } catch (e) {
+      Get.snackbar('错误', '重置系统提示词失败: $e');
+    }
   }
 }
