@@ -111,7 +111,12 @@ class ModelSettingPage extends GetView<ModelController> {
                 }
                 
                 return DropdownButtonFormField<Provider>(
-                  value: selectedProvider,
+                  value: selectedProvider != null
+                    ? providerController.providers
+                        .map((p) => p.value)
+                        .where((p) => p.id == selectedProvider!.id)
+                        .firstOrNull
+                    : null,
                   decoration: InputDecoration(
                     labelText: '选择供应商',
                   ),
@@ -181,7 +186,12 @@ class ModelSettingPage extends GetView<ModelController> {
                 }
                 
                 return DropdownButtonFormField<Provider>(
-                  value: selectedProvider,
+                  value: selectedProvider != null
+                    ? providerController.providers
+                        .map((p) => p.value)
+                        .where((p) => p.id == selectedProvider!.id)
+                        .firstOrNull
+                    : null,
                   decoration: InputDecoration(
                     labelText: '选择供应商',
                   ),
