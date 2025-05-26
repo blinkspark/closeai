@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 
 import '../models/provider.dart';
+import '../services/openai_service.dart';
 
 class ProviderController extends GetxController {
   @override
@@ -19,6 +20,11 @@ class ProviderController extends GetxController {
       await isar.providers.put(provider);
       providers.add(provider.obs);
     });
+    
+    // 刷新OpenAI服务配置
+    if (Get.isRegistered<OpenAIService>()) {
+      Get.find<OpenAIService>().refreshClient();
+    }
   }
 
   Future<void> loadProviders() async {
@@ -32,6 +38,11 @@ class ProviderController extends GetxController {
       await isar.providers.delete(providers[index].value.id);
       providers.removeAt(index);
     });
+    
+    // 刷新OpenAI服务配置
+    if (Get.isRegistered<OpenAIService>()) {
+      Get.find<OpenAIService>().refreshClient();
+    }
   }
 
   Future<void> reset() async {

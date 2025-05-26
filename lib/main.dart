@@ -1,20 +1,18 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
-
-import 'clients/openai.dart';
 import 'controllers/app_state_controller.dart';
 import 'controllers/provider_controller.dart';
+import 'controllers/model_controller.dart';
 import 'controllers/session_controller.dart';
 import 'controllers/chat_controller.dart';
 import 'services/message_service.dart';
 import 'services/message_service_impl.dart';
 import 'services/session_service.dart';
 import 'services/session_service_impl.dart';
+import 'services/openai_service.dart';
 import 'models/model.dart';
 import 'models/provider.dart';
 import 'models/session.dart';
@@ -33,10 +31,6 @@ void main() async {
       MessageSchema,
     ], directory: supportPath);
   });
-  final apiKey = Platform.environment['OR_API_KEY'];
-  assert(apiKey != null);
-  Get.put(OpenAI(baseUrl: 'https://openrouter.ai/api/v1', apiKey: apiKey));
-  
   // 注册服务层
   Get.put<MessageService>(MessageServiceImpl());
   Get.put<SessionService>(SessionServiceImpl());
@@ -44,8 +38,12 @@ void main() async {
   // 注册控制器
   Get.put(AppStateController());
   Get.put(ProviderController());
+  Get.put(ModelController());
   Get.put(ChatController());
   Get.put(SessionController());
+  
+  // 注册OpenAI服务 - 使用动态配置
+  Get.put(OpenAIService());
   runApp(const MainApp());
 }
 

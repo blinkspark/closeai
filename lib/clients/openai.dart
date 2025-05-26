@@ -13,7 +13,10 @@ class OpenAI {
   Future<Map<String, dynamic>> listModels() async {
     Response response = await dio.get(
       '$baseUrl/models',
-      options: Options(headers: {'Authorization': 'Bearer $apiKey'}),
+      options: Options(headers: {
+        'Authorization': 'Bearer $apiKey',
+        'Content-Type': 'application/json',
+      }),
     );
     return response.data;
   }
@@ -63,7 +66,10 @@ class Completions {
         if (logProbs != null) 'logprobs': logProbs,
         if (user != null) 'user': user,
       },
-      options: Options(headers: {'Authorization': 'Bearer ${openAI.apiKey}'}),
+      options: Options(headers: {
+        'Authorization': 'Bearer ${openAI.apiKey}',
+        'Content-Type': 'application/json',
+      }),
     );
     return response.data;
   }

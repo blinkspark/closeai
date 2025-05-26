@@ -1,11 +1,12 @@
 import 'package:closeai/defs.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../clients/openai.dart';
 import '../models/session.dart';
 import '../models/message.dart';
 import '../services/session_service.dart';
 import '../services/message_service.dart';
+import '../services/openai_service.dart';
 import 'chat_controller.dart';
 
 /// 会话控制器，负责管理会话相关的UI状态和业务逻辑
@@ -51,8 +52,20 @@ class SessionController extends GetxController {
     
     sendingMessage.value = true;
     try {
-      final OpenAI openai = Get.find();
+      final openaiService = Get.find<OpenAIService>();
       final currentSession = sessions[index.value].value;
+      
+      // 检查是否已配置
+      if (!openaiService.isConfigured) {
+        Get.snackbar(
+          '配置错误',
+          openaiService.configurationStatus,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
       
       // 创建用户消息
       await _chatController.addMessage(
@@ -66,20 +79,23 @@ class SessionController extends GetxController {
       final jsonMessages = allMessages.map((e) => e.toJson()).toList();
       
       // 调用AI API
-      final response = await openai.chat.completions.create(
-        model: 'meta-llama/llama-3.3-8b-instruct:free',
+      final response = await openaiService.createChatCompletion(
         messages: jsonMessages,
       );
       
-      // 创建助手回复
-      await _chatController.addMessage(
-        role: MessageRole.assistant,
-        content: response['choices'][0]['message']['content'],
-        session: currentSession,
-      );
-      
-      // 更新会话时间
-      await _sessionService.updateSession(currentSession);
+      if (response != null) {
+        // 创建助手回复
+        await _chatController.addMessage(
+          role: MessageRole.assistant,
+          content: response['choices'][0]['message']['content'],
+          session: currentSession,
+        );
+        
+        // 更新会话时间
+        await _sessionService.updateSession(currentSession);
+      }
+    } catch (e) {
+      Get.snackbar('发送失败', e.toString());
     } finally {
       sendingMessage.value = false;
     }

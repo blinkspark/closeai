@@ -3,8 +3,12 @@ import 'package:get/get.dart';
 
 import '../controllers/app_state_controller.dart';
 import '../controllers/provider_controller.dart';
+import '../controllers/model_controller.dart';
 import '../controllers/session_controller.dart';
 import 'setting_page/setting_section.dart';
+import 'setting_page/provider_setting_page.dart';
+import 'setting_page/model_setting_page.dart';
+import 'setting_page/config_status_widget.dart';
 
 class SettingPage extends GetResponsiveView<AppStateController> {
   SettingPage({super.key});
@@ -16,11 +20,32 @@ class SettingPage extends GetResponsiveView<AppStateController> {
         Container(
           width: 300,
           padding: EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Text(
-                '设置',
-                style: Theme.of(Get.context!).textTheme.headlineMedium,
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Text(
+                  '设置',
+                  style: Theme.of(Get.context!).textTheme.headlineMedium,
+                ),
+                SizedBox(height: 16),
+                ConfigStatusWidget(),
+                SizedBox(height: 16),
+                SettingSection(
+                title: 'AI配置',
+                children: [
+                  SettingSectionItem(
+                    title: '供应商管理',
+                    onPressed: () {
+                      Get.to(() => ProviderSettingPage());
+                    },
+                  ),
+                  SettingSectionItem(
+                    title: '模型管理',
+                    onPressed: () {
+                      Get.to(() => ModelSettingPage());
+                    },
+                  ),
+                ],
               ),
               SizedBox(height: 16),
               SettingSection(
@@ -61,11 +86,15 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                       await controller.reset();
                       Get.find<SessionController>().reset();
                       Get.find<ProviderController>().reset();
+                      if (Get.isRegistered<ModelController>()) {
+                        Get.find<ModelController>().reset();
+                      }
                     },
                   ),
                 ],
               ),
-            ],
+              ],
+            ),
           ),
         ),
         VerticalDivider(thickness: 1),
