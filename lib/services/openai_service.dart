@@ -118,6 +118,49 @@ class OpenAIService extends GetxService {
       rethrow;
     }
   }
+
+  /// 发送流式聊天完成请求
+  Stream<String> createChatCompletionStream({
+    required List<Map<String, dynamic>> messages,
+    int? maxTokens,
+    double? temperature,
+    double? topP,
+    int? n,
+    String? stop,
+    double? presencePenalty,
+    double? frequencyPenalty,
+    bool? logProbs,
+    Map<String, dynamic>? user,
+  }) async* {
+    if (!isConfigured) {
+      throw Exception('OpenAI客户端未配置，请先设置模型和供应商');
+    }
+    
+    try {
+      // 添加调试信息
+      print('发送流式请求到: ${currentClient!.baseUrl}');
+      print('使用模型: $currentModelId');
+      print('API Key: ${currentClient!.apiKey?.substring(0, 10)}...');
+      print('消息数量: ${messages.length}');
+      
+      yield* currentClient!.chat.completions.createStream(
+        model: currentModelId!,
+        messages: messages,
+        maxTokens: maxTokens,
+        temperature: temperature,
+        topP: topP,
+        n: n,
+        stop: stop,
+        presencePenalty: presencePenalty,
+        frequencyPenalty: frequencyPenalty,
+        logProbs: logProbs,
+        user: user,
+      );
+    } catch (e) {
+      print('流式API调用错误: $e');
+      rethrow;
+    }
+  }
   
   /// 获取可用模型列表
   Future<Map<String, dynamic>?> listModels() async {

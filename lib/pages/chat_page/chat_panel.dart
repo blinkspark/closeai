@@ -18,6 +18,7 @@ class ChatPanel extends StatelessWidget {
     return Obx(() {
       final index = sessionController.index.value;
       final isEmpty = sessionController.sessions.isEmpty;
+      final isSending = sessionController.sendingMessage.value;
       final sessionTitleController = TextEditingController(
         text: isEmpty ? '' : sessionController.sessions[index].value.title,
       );
@@ -133,7 +134,7 @@ class ChatPanel extends StatelessWidget {
                           bindings: {
                             const SingleActivator(LogicalKeyboardKey.enter): () {
                               // 单独按Enter: 发送消息
-                              if (!isEmpty && inputController.text.trim().isNotEmpty) {
+                              if (!isEmpty && !isSending && inputController.text.trim().isNotEmpty) {
                                 _sendMessage(sessionController, inputController);
                               }
                             },
@@ -145,8 +146,8 @@ class ChatPanel extends StatelessWidget {
                             keyboardType: TextInputType.multiline,
                             textInputAction: TextInputAction.newline,
                             decoration: InputDecoration(
-                              enabled: !isEmpty,
-                              hintText: '输入内容 (Enter发送, Shift+Enter换行)',
+                              enabled: !isEmpty && !isSending,
+                              hintText: isSending ? '正在发送消息...' : '输入内容 (Enter发送, Shift+Enter换行)',
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -159,11 +160,17 @@ class ChatPanel extends StatelessWidget {
                       SizedBox(width: 16),
                       IconButton(
                         onPressed:
-                            isEmpty
+                            isEmpty || isSending
                                 ? null
                                 : () => _sendMessage(sessionController, inputController),
-                        icon: Icon(Icons.send),
-                        tooltip: '发送',
+                        icon: isSending
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Icon(Icons.send),
+                        tooltip: isSending ? '发送中...' : '发送',
                       ),
                     ],
                   ),
@@ -177,7 +184,7 @@ class ChatPanel extends StatelessWidget {
   }
 
   Future<void> _sendMessage(SessionController sessionController, TextEditingController inputController) async {
-    if (inputController.text.trim().isEmpty) return;
+    if (inputController.text.trim().isEmpty || sessionController.sendingMessage.value) return;
     
     final content = inputController.text.trim();
     inputController.clear(); // 立即清空输入框

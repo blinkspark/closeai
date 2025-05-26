@@ -78,26 +78,45 @@ class SessionController extends GetxController {
       final allMessages = await _messageService.getMessagesBySessionId(currentSession.id);
       final jsonMessages = allMessages.map((e) => e.toJson()).toList();
       
-      // 调用AI API
-      final response = await openaiService.createChatCompletion(
-        messages: jsonMessages,
-      );
+      // 开始流式响应
+      await sendStreamingMessage(jsonMessages, currentSession);
       
-      if (response != null) {
-        // 创建助手回复
-        await _chatController.addMessage(
-          role: MessageRole.assistant,
-          content: response['choices'][0]['message']['content'],
-          session: currentSession,
-        );
-        
-        // 更新会话时间
-        await _sessionService.updateSession(currentSession);
-      }
     } catch (e) {
       Get.snackbar('发送失败', e.toString());
     } finally {
       sendingMessage.value = false;
+    }
+  }
+
+  /// 发送流式消息
+  Future<void> sendStreamingMessage(List<Map<String, dynamic>> messages, Session session) async {
+    final openaiService = Get.find<OpenAIService>();
+    
+    // 创建空的助手消息用于流式更新
+    await _chatController.startStreamingMessage(
+      role: MessageRole.assistant,
+      session: session,
+    );
+    
+    String fullContent = '';
+    
+    try {
+      // 获取流式响应
+      await for (final chunk in openaiService.createChatCompletionStream(messages: messages)) {
+        fullContent += chunk;
+        _chatController.updateStreamingMessage(fullContent);
+      }
+      
+      // 完成流式消息
+      await _chatController.finishStreamingMessage();
+      
+      // 更新会话时间
+      await _sessionService.updateSession(session);
+      
+    } catch (e) {
+      // 如果出错，取消流式消息
+      await _chatController.cancelStreamingMessage();
+      rethrow;
     }
   }
 

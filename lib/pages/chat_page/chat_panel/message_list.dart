@@ -19,9 +19,13 @@ class MessageList extends StatelessWidget {
         return ListView.builder(
           itemCount: messages.length,
           itemBuilder: (context, idx) {
+            final message = messages[idx];
+            final isStreaming = chatController.isStreaming.value &&
+                               chatController.streamingMessage.value?.id == message.id;
             return MessageWidget(
-              isUser: messages[idx].role == 'user',
-              message: messages[idx].content,
+              isUser: message.role == 'user',
+              message: message.content,
+              isStreaming: isStreaming,
             );
           },
         );
@@ -33,7 +37,13 @@ class MessageList extends StatelessWidget {
 class MessageWidget extends StatelessWidget {
   final bool isUser;
   final String message;
-  const MessageWidget({super.key, required this.message, this.isUser = false});
+  final bool isStreaming;
+  const MessageWidget({
+    super.key,
+    required this.message,
+    this.isUser = false,
+    this.isStreaming = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -55,14 +65,44 @@ class MessageWidget extends StatelessWidget {
                       : Theme.of(context).colorScheme.surfaceContainerHigh,
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(
-                  message,
-                  style: TextStyle(
-                    color:
-                        isUser
-                            ? Theme.of(context).colorScheme.onPrimaryContainer
-                            : Theme.of(context).colorScheme.onSurface,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      message,
+                      style: TextStyle(
+                        color:
+                            isUser
+                                ? Theme.of(context).colorScheme.onPrimaryContainer
+                                : Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    if (isStreaming) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '正在输入...',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),

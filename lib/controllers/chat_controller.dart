@@ -12,6 +12,8 @@ class ChatController extends GetxController {
   final messages = <Message>[].obs;
   final isLoading = false.obs;
   final currentSessionId = Rxn<int>();
+  final streamingMessage = Rxn<Message>();
+  final isStreaming = false.obs;
 
   @override
   void onInit() {
@@ -70,10 +72,71 @@ class ChatController extends GetxController {
     messages.removeWhere((m) => m.id == messageId);
   }
 
+  /// 开始流式消息
+  Future<Message> startStreamingMessage({
+    required String role,
+    required Session session,
+  }) async {
+    final message = await _messageService.createMessage(
+      role: role,
+      content: '',
+      session: session,
+    );
+    
+    // 如果是当前会话的消息，添加到UI列表
+    if (currentSessionId.value == session.id) {
+      messages.add(message);
+      streamingMessage.value = message;
+      isStreaming.value = true;
+    }
+    
+    return message;
+  }
+
+  /// 更新流式消息内容
+  void updateStreamingMessage(String content) {
+    if (streamingMessage.value != null) {
+      streamingMessage.value!.content = content;
+      
+      // 更新UI中的消息
+      final index = messages.indexWhere((m) => m.id == streamingMessage.value!.id);
+      if (index != -1) {
+        messages[index] = streamingMessage.value!;
+      }
+    }
+  }
+
+  /// 完成流式消息
+  Future<void> finishStreamingMessage() async {
+    if (streamingMessage.value != null) {
+      // 保存最终的消息内容到数据库
+      await _messageService.updateMessage(streamingMessage.value!);
+      
+      streamingMessage.value = null;
+      isStreaming.value = false;
+    }
+  }
+
+  /// 取消流式消息
+  Future<void> cancelStreamingMessage() async {
+    if (streamingMessage.value != null) {
+      // 从UI中移除
+      messages.removeWhere((m) => m.id == streamingMessage.value!.id);
+      
+      // 从数据库中删除
+      await _messageService.deleteMessage(streamingMessage.value!.id);
+      
+      streamingMessage.value = null;
+      isStreaming.value = false;
+    }
+  }
+
   /// 清空当前会话的消息显示
   void clearMessages() {
     messages.clear();
     currentSessionId.value = null;
+    streamingMessage.value = null;
+    isStreaming.value = false;
   }
 
   /// 获取消息总数
