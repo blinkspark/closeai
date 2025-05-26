@@ -78,6 +78,7 @@ class SystemPromptSettingPage extends StatelessWidget {
             Expanded(
               child: ReorderableListView.builder(
                 itemCount: controller.systemPrompts.length,
+                buildDefaultDragHandles: false,
                 onReorder: (oldIndex, newIndex) {
                   if (newIndex > oldIndex) newIndex--;
                   final items = controller.systemPrompts.toList();
@@ -97,7 +98,10 @@ class SystemPromptSettingPage extends StatelessWidget {
                       leading: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.drag_handle),
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: Icon(Icons.drag_handle),
+                          ),
                           SizedBox(width: 8),
                           if (prompt.isDefault)
                             Icon(Icons.star, color: Colors.amber)
