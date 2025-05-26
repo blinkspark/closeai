@@ -274,7 +274,7 @@ class SystemPromptSettingPage extends StatelessWidget {
               }
               
               if (isEdit) {
-                final updatedPrompt = prompt!.copyWith(
+                final updatedPrompt = prompt.copyWith(
                   name: name,
                   content: content,
                   description: descriptionController.text.trim().isEmpty 

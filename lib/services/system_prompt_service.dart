@@ -1,4 +1,3 @@
-import 'package:isar/isar.dart';
 import '../models/system_prompt.dart';
 
 abstract class SystemPromptService {

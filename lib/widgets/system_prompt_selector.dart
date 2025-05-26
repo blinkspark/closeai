@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/system_prompt_controller.dart';
-import '../models/system_prompt.dart';
 
 class SystemPromptSelector extends StatelessWidget {
   const SystemPromptSelector({super.key});
