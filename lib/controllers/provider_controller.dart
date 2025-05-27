@@ -46,6 +46,63 @@ class ProviderController extends GetxController {
   }
 
   Future<void> reset() async {
+    // 清除所有现有的Provider
+    await isar.writeTxn(() async {
+      await isar.providers.clear();
+    });
+    
+    // 强制重新创建默认Provider
+    await _createDefaultProviders();
+  }
+
+  /// 初始化默认Provider
+  Future<void> initializeDefaultProviders() async {
+    final existingProviders = await isar.providers.where().findAll();
+    
+    // 如果已经有Provider，则不添加默认Provider
+    if (existingProviders.isNotEmpty) {
+      return;
+    }
+
+    await _createDefaultProviders();
+  }
+
+  /// 创建默认Provider的私有方法
+  Future<void> _createDefaultProviders() async {
+    final defaultProviders = [
+      Provider()
+        ..name = 'OpenAI'
+        ..baseUrl = 'https://api.openai.com/v1'
+        ..apiKey = '',
+      Provider()
+        ..name = 'Anthropic'
+        ..baseUrl = 'https://api.anthropic.com/v1'
+        ..apiKey = '',
+      Provider()
+        ..name = 'DeepSeek'
+        ..baseUrl = 'https://api.deepseek.com'
+        ..apiKey = '',
+      Provider()
+        ..name = 'ZhipuAI'
+        ..baseUrl = 'https://open.bigmodel.cn/api/paas/v4'
+        ..apiKey = '',
+      Provider()
+        ..name = 'OpenRouter'
+        ..baseUrl = 'https://openrouter.ai/api/v1'
+        ..apiKey = '',
+      Provider()
+        ..name = 'Requesty'
+        ..baseUrl = 'https://router.requesty.ai/v1'
+        ..apiKey = '',
+    ];
+
+    await isar.writeTxn(() async {
+      for (final provider in defaultProviders) {
+        await isar.providers.put(provider);
+      }
+    });
+
+    // 重新加载Provider列表
     await loadProviders();
   }
 }

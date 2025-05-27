@@ -58,6 +58,10 @@ void main() async {
     await systemPromptService.initializeDefaultPrompts();
   }
   
+  // 初始化默认Provider
+  final providerController = Get.find<ProviderController>();
+  await providerController.initializeDefaultProviders();
+  
   runApp(const MainApp());
 }
 

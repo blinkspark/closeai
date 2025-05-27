@@ -52,8 +52,8 @@ class ProviderSettingPage extends GetView<ProviderController> {
                   children: [
                     if (provider.baseUrl != null)
                       Text('Base URL: ${provider.baseUrl}'),
-                    if (provider.apiKey != null)
-                      Text('API Key: ${'*' * 8}${provider.apiKey!.substring(provider.apiKey!.length - 4)}'),
+                    if (provider.apiKey != null && provider.apiKey!.isNotEmpty)
+                      Text('API Key: ${provider.apiKey!.length > 4 ? '${'*' * 8}${provider.apiKey!.substring(provider.apiKey!.length - 4)}' : '*' * provider.apiKey!.length}'),
                   ],
                 ),
                 trailing: Row(
