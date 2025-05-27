@@ -17,6 +17,10 @@ dependencies:
   isar_flutter_libs: ^3.1.0+1
   path: ^1.9.1
   path_provider: ^2.1.5
+  web_socket_channel: ^2.4.0
+  process: ^4.2.4
+  json_rpc_2: ^3.0.2
+  uuid: ^3.0.7
 
 dev_dependencies:
   flutter_test:

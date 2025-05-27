@@ -16,11 +16,14 @@ import 'services/session_service_impl.dart';
 import 'services/system_prompt_service.dart';
 import 'services/system_prompt_service_impl.dart';
 import 'services/openai_service.dart';
+import 'services/mcp_service.dart';
 import 'models/model.dart';
 import 'models/provider.dart';
 import 'models/session.dart';
 import 'models/message.dart';
 import 'models/system_prompt.dart';
+import 'models/mcp_server.dart';
+import 'controllers/mcp_controller.dart';
 import 'pages/home_page.dart';
 
 void main() async {
@@ -34,17 +37,20 @@ void main() async {
       SessionSchema,
       MessageSchema,
       SystemPromptSchema,
+      MCPServerSchema,
     ], directory: supportPath);
   });
   // 注册服务层
   Get.put<MessageService>(MessageServiceImpl());
   Get.put<SessionService>(SessionServiceImpl());
   Get.put<SystemPromptService>(SystemPromptServiceImpl());
+  Get.put<MCPService>(MCPServiceImpl());
   
   // 注册控制器
   Get.put(AppStateController());
   Get.put(ProviderController());
   Get.put(ModelController());
+  Get.put(MCPController());
   Get.put(ChatController());
   Get.put(SessionController());
   Get.put(SystemPromptController());
