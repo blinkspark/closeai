@@ -6,8 +6,9 @@ import '../controllers/model_controller.dart';
 import '../models/function_call.dart';
 import 'zhipu_search_service.dart';
 import 'tool_registry.dart';
+import 'openai_service_interface.dart';
 
-class OpenAIService extends GetxService {
+class OpenAIService extends GetxService implements OpenAIServiceInterface {
   OpenAI? _currentClient;
   late ZhipuSearchService _zhipuSearchService;
   
@@ -36,10 +37,9 @@ class OpenAIService extends GetxService {
       _currentClient = OpenAI(
         apiKey: provider.apiKey,
         baseUrl: provider.baseUrl ?? 'https://api.openai.com/v1',
-      );
-      print('OpenAI客户端初始化成功: ${provider.name} - ${selectedModel.modelId}');
+      );      // OpenAI客户端初始化成功
     } else {
-      print('OpenAI客户端初始化失败: 模型或供应商为空');
+      // OpenAI客户端初始化失败: 模型或供应商为空
     }
   }
   
@@ -110,31 +110,11 @@ class OpenAIService extends GetxService {
     
     List<Map<String, dynamic>>? tools;
     dynamic toolChoice;
-    
-    if (enableTools) {
+      if (enableTools) {
       tools = ToolRegistry.getEnabledTools(enableWebSearch: true);
       toolChoice = tools.isNotEmpty ? 'auto' : null;
-      print('🐛 [DEBUG] 启用工具调用，可用工具数量: ${tools.length}');
-      if (tools.isNotEmpty) {
-        print('🐛 [DEBUG] 可用工具: ${tools.map((t) => t['function']['name']).join(', ')}');
-        print('🐛 [DEBUG] 工具详情: ${tools.map((t) => t['function']).toList()}');
-      } else {
-        print('🐛 [DEBUG] 警告：工具已启用但没有可用工具！');
-      }
-      
-      // 🐛 调试：检查智谱搜索服务状态
-      print('🐛 [DEBUG] 智谱搜索服务配置状态: ${_zhipuSearchService.isConfigured}');
-      print('🐛 [DEBUG] 智谱搜索服务状态: ${_zhipuSearchService.configurationStatus}');
-    } else {
-      print('🐛 [DEBUG] 工具调用已禁用');
     }
-    
-    try {
-      print('发送请求到: ${currentClient!.baseUrl}');
-      print('使用模型: $currentModelId');
-      print('消息数量: ${messages.length}');
-      print('工具启用: $enableTools');
-      
+      try {
       final response = await currentClient!.chat.completions.create(
         model: currentModelId!,
         messages: messages,
@@ -156,9 +136,7 @@ class OpenAIService extends GetxService {
       final choice = response['choices']?[0];
       final message = choice?['message'];
       final toolCalls = message?['tool_calls'];
-      
-      if (toolCalls != null && toolCalls is List && toolCalls.isNotEmpty) {
-        print('检测到工具调用，数量: ${toolCalls.length}');
+        if (toolCalls != null && toolCalls is List && toolCalls.isNotEmpty) {
         final finalResponse = await _handleToolCalls(response, messages);
         
         // 将工具调用信息添加到最终响应中，以便聊天控制器可以提取搜索信息
@@ -172,11 +150,9 @@ class OpenAIService extends GetxService {
         
         return finalResponse;
       }
-      
-      return response;
+        return response;
     } catch (e) {
-      print('API调用错误: $e');
-      rethrow;
+      throw Exception('API调用错误: $e');
     }
   }
 
@@ -197,14 +173,7 @@ class OpenAIService extends GetxService {
     if (!isConfigured) {
       throw Exception('OpenAI客户端未配置，请先设置模型和供应商');
     }
-    
-    try {
-      // 添加调试信息
-      print('发送请求到: ${currentClient!.baseUrl}');
-      print('使用模型: $currentModelId');
-      print('API Key: ${currentClient!.apiKey?.substring(0, 10)}...');
-      print('消息数量: ${messages.length}');
-      
+      try {
       return await currentClient!.chat.completions.create(
         model: currentModelId!,
         messages: messages,
@@ -218,10 +187,8 @@ class OpenAIService extends GetxService {
         frequencyPenalty: frequencyPenalty,
         logProbs: logProbs,
         user: user,
-      );
-    } catch (e) {
-      print('API调用错误: $e');
-      rethrow;
+      );    } catch (e) {
+      throw Exception('API调用错误: $e');
     }
   }
 
@@ -241,14 +208,7 @@ class OpenAIService extends GetxService {
     if (!isConfigured) {
       throw Exception('OpenAI客户端未配置，请先设置模型和供应商');
     }
-    
-    try {
-      // 添加调试信息
-      print('发送流式请求到: ${currentClient!.baseUrl}');
-      print('使用模型: $currentModelId');
-      print('API Key: ${currentClient!.apiKey?.substring(0, 10)}...');
-      print('消息数量: ${messages.length}');
-      
+      try {
       yield* currentClient!.chat.completions.createStream(
         model: currentModelId!,
         messages: messages,
@@ -261,10 +221,8 @@ class OpenAIService extends GetxService {
         frequencyPenalty: frequencyPenalty,
         logProbs: logProbs,
         user: user,
-      );
-    } catch (e) {
-      print('流式API调用错误: $e');
-      rethrow;
+      );    } catch (e) {
+      throw Exception('流式API调用错误: $e');
     }
   }
   
@@ -282,10 +240,7 @@ class OpenAIService extends GetxService {
     Map<String, dynamic> response,
     List<Map<String, dynamic>> originalMessages,
   ) async {
-    final message = response['choices'][0]['message'];
-    final toolCalls = message['tool_calls'] as List;
-    
-    print('处理工具调用: ${toolCalls.length} 个工具');
+    final message = response['choices'][0]['message'];    final toolCalls = message['tool_calls'] as List;
     
     // 添加助手消息到对话历史
     final updatedMessages = List<Map<String, dynamic>>.from(originalMessages);
@@ -296,21 +251,15 @@ class OpenAIService extends GetxService {
     
     // 执行每个工具调用
     for (final toolCall in toolCalls) {
-      final toolCallId = toolCall['id'];
-      final functionName = toolCall['function']['name'];
+      final toolCallId = toolCall['id'];      final functionName = toolCall['function']['name'];
       final arguments = toolCall['function']['arguments'];
-      
-      print('执行工具调用: $functionName');
-      print('参数: $arguments');
       
       ToolResponse toolResponse;
       try {
-        final result = await _executeToolCall(functionName, arguments);
-        toolResponse = ToolResponse.success(
+        final result = await _executeToolCall(functionName, arguments);        toolResponse = ToolResponse.success(
           toolCallId: toolCallId,
           content: result,
         );
-        print('工具调用成功: ${result.length} 字符');
         
         // 如果是搜索工具，保存搜索信息
         if (functionName == 'zhipu_web_search') {
@@ -322,13 +271,11 @@ class OpenAIService extends GetxService {
             if (searchQuery != null) {
               searchResultsInfo['queries'] = (searchResultsInfo['queries'] as List<String>? ?? [])..add(searchQuery);
               searchResultsInfo['total_count'] = (searchResultsInfo['total_count'] as int? ?? 0) + count;
-            }
-          } catch (e) {
-            print('解析搜索参数失败: $e');
+            }          } catch (e) {
+            // 解析搜索参数失败
           }
         }
       } catch (e) {
-        print('工具调用失败: $e');
         toolResponse = ToolResponse.error(
           toolCallId: toolCallId,
           error: e.toString(),
@@ -336,10 +283,7 @@ class OpenAIService extends GetxService {
       }
       
       // 添加工具结果到对话历史
-      updatedMessages.add(toolResponse.toMessageJson());
-    }
-    
-    print('重新调用API获取最终回答，消息数量: ${updatedMessages.length}');
+      updatedMessages.add(toolResponse.toMessageJson());    }
     
     // 再次调用API获取最终回答
     final finalResponse = await currentClient!.chat.completions.create(
@@ -389,37 +333,16 @@ class OpenAIService extends GetxService {
     try {
       final searchQuery = arguments['search_query'] as String;
       final searchEngine = arguments['search_engine'] as String? ?? 'search_std';
-      final count = arguments['count'] as int? ?? 5;
-      final searchRecencyFilter = arguments['search_recency_filter'] as String? ?? 'noLimit';
-      
-      print('🐛 [DEBUG] ========== 执行智谱搜索 ==========');
-      print('🐛 [DEBUG] 搜索查询: $searchQuery');
-      print('🐛 [DEBUG] 搜索引擎: $searchEngine');
-      print('🐛 [DEBUG] 结果数量: $count');
-      print('🐛 [DEBUG] 时间过滤: $searchRecencyFilter');
+      final count = arguments['count'] as int? ?? 5;      final searchRecencyFilter = arguments['search_recency_filter'] as String? ?? 'noLimit';
       
       final searchResponse = await _zhipuSearchService.webSearch(
         searchQuery: searchQuery,
         searchEngine: searchEngine,
         count: count,
         searchRecencyFilter: searchRecencyFilter,
-      );
-        // 获取实际搜索结果数量
-      final searchResults = searchResponse['search_result'] as List?;
-      final actualCount = searchResults?.length ?? 0;
+      );      final formattedResult = _zhipuSearchService.formatSearchResults(searchResponse);
       
-      print('🐛 [DEBUG] 搜索API调用完成');
-      print('🐛 [DEBUG] 实际获得结果数: $actualCount');
-      print('🐛 [DEBUG] 原始响应键: ${searchResponse.keys.toList()}');
-      
-      final formattedResult = _zhipuSearchService.formatSearchResults(searchResponse);
-      print('🐛 [DEBUG] 格式化结果长度: ${formattedResult.length}');
-      print('🐛 [DEBUG] 格式化结果预览: ${formattedResult.length > 200 ? formattedResult.substring(0, 200) + '...' : formattedResult}');
-      print('🐛 [DEBUG] ======================================');
-      
-      return formattedResult;
-    } catch (e) {
-      print('智谱搜索执行失败: $e');
+      return formattedResult;    } catch (e) {
       throw Exception('搜索失败: $e');
     }
   }

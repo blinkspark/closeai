@@ -49,11 +49,9 @@ class ToolRegistry extends GetxService {
       },
     );
   }
-  
-  /// 注册所有可用工具
+    /// 注册所有可用工具
   static void registerAllTools() {
     registerZhipuSearch();
-    print('已注册 ${_tools.length} 个工具: ${_tools.keys.join(', ')}');
   }
   
   /// 获取所有工具定义（OpenAI格式）
@@ -63,15 +61,10 @@ class ToolRegistry extends GetxService {
       'function': tool.toJson(),
     }).toList();
   }
-  
-  /// 获取启用的工具定义
+    /// 获取启用的工具定义
   static List<Map<String, dynamic>> getEnabledTools({
     bool enableWebSearch = true,
   }) {
-    print('🐛 [DEBUG] getEnabledTools调用 - enableWebSearch: $enableWebSearch');
-    print('🐛 [DEBUG] 已注册工具数量: ${_tools.length}');
-    print('🐛 [DEBUG] 已注册工具列表: ${_tools.keys.toList()}');
-    
     final enabledTools = <Map<String, dynamic>>[];
     
     if (enableWebSearch && _tools.containsKey('zhipu_web_search')) {
@@ -79,12 +72,8 @@ class ToolRegistry extends GetxService {
         'type': 'function',
         'function': _tools['zhipu_web_search']!.toJson(),
       });
-      print('🐛 [DEBUG] 智谱搜索工具已添加到启用列表');
-    } else {
-      print('🐛 [DEBUG] 智谱搜索工具未添加 - enableWebSearch: $enableWebSearch, 工具存在: ${_tools.containsKey('zhipu_web_search')}');
     }
     
-    print('🐛 [DEBUG] 最终启用工具数量: ${enabledTools.length}');
     return enabledTools;
   }
   
@@ -175,13 +164,11 @@ class ToolRegistry extends GetxService {
       }
     }
     
-    return errors;
-  }
+    return errors;  }
   
   /// 清空所有工具
   static void clearAllTools() {
     _tools.clear();
-    print('已清空所有工具注册');
   }
   
   /// 获取工具统计信息

@@ -29,16 +29,13 @@ class ModelController extends GetxController {
     final models = await isar.collection<Model>().where().findAll();
     
     // 加载每个模型的关联Provider
-    for (final model in models) {
-      try {
+    for (final model in models) {      try {
         await model.provider.load();
         // 如果provider为null，尝试重新关联
         if (model.provider.value == null) {
-          print('模型 ${model.modelId} 的供应商关联丢失，尝试重新关联');
           await _tryReassignProvider(model);
         }
       } catch (e) {
-        print('加载模型 ${model.modelId} 的供应商失败: $e');
         await _tryReassignProvider(model);
       }
     }
@@ -75,14 +72,10 @@ class ModelController extends GetxController {
         await isar.writeTxn(() async {
           model.provider.value = matchedProvider;
           await isar.collection<Model>().put(model);
-          await model.provider.save();
-        });
-        print('成功为模型 ${model.modelId} 重新关联供应商 ${matchedProvider.name}');
-      } else {
-        print('无法为模型 ${model.modelId} 找到合适的供应商');
+          await model.provider.save();        });
       }
     } catch (e) {
-      print('重新分配供应商失败: $e');
+      // 重新分配供应商失败，保持原状
     }
   }
 

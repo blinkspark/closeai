@@ -40,9 +40,8 @@ class _ZhipuSettingPageState extends State<ZhipuSettingPage> {
         _apiKeyController.text = _zhipuProvider!.apiKey!;
         // 同时配置服务
         _zhipuService.configure(_zhipuProvider!.apiKey!);
-      }
-    } catch (e) {
-      print('加载智谱AI配置失败: $e');
+      }    } catch (e) {
+      // 加载智谱AI配置失败
     }
   }
 

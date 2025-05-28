@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import '../controllers/provider_controller.dart';
+import 'search_service_interface.dart';
 
 /// 智谱AI搜索服务
-class ZhipuSearchService extends GetxService {
+class ZhipuSearchService extends GetxService implements SearchServiceInterface {
   final Dio _dio = Dio();
   static const String _baseUrl = 'https://open.bigmodel.cn/api/paas/v4';
   
@@ -14,44 +15,31 @@ class ZhipuSearchService extends GetxService {
     super.onInit();
     _loadApiKeyFromProvider();
   }
-  
-  /// 从Provider系统加载API Key
+    /// 从Provider系统加载API Key
   void _loadApiKeyFromProvider() {
     try {
-      print('🐛 [DEBUG] 开始从Provider加载智谱AI API Key');
       if (Get.isRegistered<ProviderController>()) {
         final providerController = Get.find<ProviderController>();
-        print('🐛 [DEBUG] ProviderController已注册，Provider数量: ${providerController.providers.length}');
         
         final zhipuProvider = providerController.providers
             .map((p) => p.value)
             .where((p) => p.name == 'ZhipuAI')
             .firstOrNull;
         
-        print('🐛 [DEBUG] 智谱AI Provider查找结果: ${zhipuProvider != null ? "找到" : "未找到"}');
-        
-        if (zhipuProvider != null) {
-          print('🐛 [DEBUG] 智谱AI Provider详情 - 名称: ${zhipuProvider.name}, API Key存在: ${zhipuProvider.apiKey != null}, API Key非空: ${zhipuProvider.apiKey?.isNotEmpty ?? false}');
-          
-          if (zhipuProvider.apiKey != null && zhipuProvider.apiKey!.isNotEmpty) {
-            _apiKey = zhipuProvider.apiKey;
-            print('🐛 [DEBUG] 智谱AI API Key已从Provider加载: ${zhipuProvider.apiKey!.substring(0, 10)}...');
-          } else {
-            print('🐛 [DEBUG] 智谱AI API Key为空或null');
-          }
+        if (zhipuProvider != null &&
+            zhipuProvider.apiKey != null && 
+            zhipuProvider.apiKey!.isNotEmpty) {
+          _apiKey = zhipuProvider.apiKey;
         }
-      } else {
-        print('🐛 [DEBUG] ProviderController未注册');
       }
     } catch (e) {
-      print('🐛 [DEBUG] 从Provider加载智谱AI API Key失败: $e');
-    }
-  }
+      // 忽略加载错误
+    }  }
   
   /// 配置API Key
+  @override
   void configure(String apiKey) {
     _apiKey = apiKey;
-    print('智谱AI API Key已配置: ${apiKey.substring(0, 10)}...');
   }
   
   /// 检查是否已配置
@@ -60,9 +48,7 @@ class ZhipuSearchService extends GetxService {
     if (_apiKey == null || _apiKey!.isEmpty) {
       _loadApiKeyFromProvider();
     }
-    final result = _apiKey != null && _apiKey!.isNotEmpty;
-    print('🐛 [DEBUG] isConfigured检查结果: $result, API Key存在: ${_apiKey != null}');
-    return result;
+    return _apiKey != null && _apiKey!.isNotEmpty;
   }
   
   /// 获取配置状态
@@ -91,11 +77,7 @@ class ZhipuSearchService extends GetxService {
     if (searchQuery.trim().isEmpty) {
       throw Exception('搜索查询不能为空');
     }
-    
-    try {
-      print('执行智谱搜索: $searchQuery');
-      print('搜索引擎: $searchEngine, 结果数量: $count');
-      
+      try {
       final requestData = {
         'search_query': searchQuery.trim(),
         'search_engine': searchEngine,
@@ -116,52 +98,13 @@ class ZhipuSearchService extends GetxService {
             'Authorization': 'Bearer $_apiKey',
             'Content-Type': 'application/json',
           },
-        ),
-      );
-        print('智谱搜索API响应状态: ${response.statusCode}');
+        ),      );
       
       if (response.statusCode == 200) {
-        // 🐛 [DEBUG] 打印搜索结果详情
-        final responseData = response.data;
-        print('🐛 [DEBUG] ========== 搜索结果详情 ==========');
-        print('🐛 [DEBUG] 搜索查询: $searchQuery');
-        print('🐛 [DEBUG] 搜索引擎: $searchEngine');
-        print('🐛 [DEBUG] 请求结果数: $count');
-        
-        if (responseData is Map<String, dynamic>) {
-          final searchResults = responseData['search_result'] as List?;
-          final searchIntent = responseData['search_intent'] as List?;
-          
-          print('🐛 [DEBUG] 实际返回结果数: ${searchResults?.length ?? 0}');
-          
-          if (searchIntent != null && searchIntent.isNotEmpty) {
-            final intent = searchIntent.first;
-            print('🐛 [DEBUG] 搜索意图关键词: ${intent['keywords']}');
-          }
-          
-          if (searchResults != null) {
-            for (int i = 0; i < searchResults.length && i < 3; i++) {
-              final result = searchResults[i];
-              print('🐛 [DEBUG] 结果${i + 1}: ${result['title']}');
-              print('🐛 [DEBUG]   来源: ${result['media']}');
-              print('🐛 [DEBUG]   链接: ${result['link']}');
-              if (result['content'] != null) {
-                final content = result['content'].toString();
-                final preview = content.length > 100 ? '${content.substring(0, 100)}...' : content;
-                print('🐛 [DEBUG]   内容预览: $preview');
-              }
-            }
-          }
-        }
-        print('🐛 [DEBUG] =====================================');
-        
         return response.data;
       } else {
         throw Exception('搜索请求失败，状态码: ${response.statusCode}');
-      }
-    } on DioException catch (e) {
-      print('智谱搜索API调用错误: ${e.message}');
-      
+      }    } on DioException catch (e) {
       if (e.response != null) {
         final errorData = e.response!.data;
         if (errorData is Map && errorData.containsKey('error')) {
@@ -178,26 +121,17 @@ class ZhipuSearchService extends GetxService {
           throw Exception('搜索服务响应错误: ${e.response?.statusCode}');
         default:
           throw Exception('搜索请求失败: ${e.message}');
-      }
-    } catch (e) {
-      print('智谱搜索未知错误: $e');
+      }    } catch (e) {
       throw Exception('搜索失败: $e');
     }
   }
-    /// 格式化搜索结果为工具响应
+  /// 格式化搜索结果为工具响应
   String formatSearchResults(Map<String, dynamic> searchResponse) {
     try {
-      print('🐛 [DEBUG] ========== 格式化搜索结果 ==========');
-      
       final searchIntent = searchResponse['search_intent'] as List?;
       final searchResults = searchResponse['search_result'] as List?;
       
-      print('🐛 [DEBUG] 原始响应数据类型: ${searchResponse.runtimeType}');
-      print('🐛 [DEBUG] 搜索意图数据: ${searchIntent?.length ?? 0} 条');
-      print('🐛 [DEBUG] 搜索结果数据: ${searchResults?.length ?? 0} 条');
-      
       if (searchResults == null || searchResults.isEmpty) {
-        print('🐛 [DEBUG] 无搜索结果，返回提示信息');
         return '未找到相关搜索结果，请尝试使用不同的关键词。';
       }
       
@@ -209,18 +143,15 @@ class ZhipuSearchService extends GetxService {
         if (intent['keywords'] != null) {
           buffer.writeln('搜索关键词: ${intent['keywords']}');
           buffer.writeln();
-          print('🐛 [DEBUG] 添加搜索关键词: ${intent['keywords']}');
         }
       }
       
       buffer.writeln('搜索结果 (共${searchResults.length}条):');
       buffer.writeln();
-      print('🐛 [DEBUG] 开始格式化 ${searchResults.length} 条结果');
       
       for (int i = 0; i < searchResults.length && i < 8; i++) {
         final result = searchResults[i];
         buffer.writeln('${i + 1}. **${result['title'] ?? '无标题'}**');
-        print('🐛 [DEBUG] 格式化结果${i + 1}: ${result['title']}');
         
         if (result['media'] != null) {
           buffer.writeln('   来源: ${result['media']}');
@@ -250,13 +181,7 @@ class ZhipuSearchService extends GetxService {
       buffer.writeln('---');
       buffer.writeln('搜索时间: ${DateTime.now().toString().substring(0, 19)}');
       
-      final formattedResult = buffer.toString();
-      print('🐛 [DEBUG] 格式化完成，总长度: ${formattedResult.length} 字符');
-      print('🐛 [DEBUG] ========================================');
-      
-      return formattedResult;
-    } catch (e) {
-      print('格式化搜索结果失败: $e');
+      return buffer.toString();    } catch (e) {
       return '搜索结果格式化失败，但搜索已完成。原始数据: ${searchResponse.toString().substring(0, 200)}...';
     }
   }

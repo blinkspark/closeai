@@ -566,15 +566,6 @@ class ChatPanel extends StatelessWidget {
     final content = inputController.text.trim();
     inputController.clear(); // 立即清空输入框
 
-    // 打印当前的系统提示词
-    final systemPromptController = Get.find<SystemPromptController>();
-    final currentSystemPrompt = systemPromptController.getCurrentPromptContent();
-    print('=== 当前系统提示词 ===');
-    print(currentSystemPrompt);
-    print('=== 用户输入 ===');
-    print(content);
-    print('==================');
-
     // 异步发送消息，不等待完成
     sessionController.sendMessage(
       Message()
@@ -604,14 +595,13 @@ class ChatPanel extends StatelessWidget {
                 },
             borderRadius: BorderRadius.circular(20),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: chatController.isToolsEnabled
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),              decoration: BoxDecoration(
+                color: chatController.isToolsEnabledObs.value
                   ? Colors.blue.withOpacity(0.1)
                   : Colors.grey.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: chatController.isToolsEnabled
+                  color: chatController.isToolsEnabledObs.value
                     ? Colors.blue
                     : Colors.grey,
                   width: 1,
@@ -623,14 +613,13 @@ class ChatPanel extends StatelessWidget {
                   Icon(
                     Icons.search,
                     size: 16,
-                    color: chatController.isToolsEnabled
+                    color: chatController.isToolsEnabledObs.value
                       ? Colors.blue
                       : Colors.grey,
                   ),
-                  const SizedBox(width: 4),
-                  Obx(() {
+                  const SizedBox(width: 4),                  Obx(() {
                     final hasSearchResults = chatController.searchResultCount.value > 0;
-                    final searchText = chatController.isToolsEnabled
+                    final searchText = chatController.isToolsEnabledObs.value
                       ? (hasSearchResults
                           ? '已搜索到 ${chatController.searchResultCount.value} 个网页'
                           : '联网搜索')
@@ -640,14 +629,14 @@ class ChatPanel extends StatelessWidget {
                       searchText,
                       style: TextStyle(
                         fontSize: 12,
-                        color: chatController.isToolsEnabled
+                        color: chatController.isToolsEnabledObs.value
                           ? Colors.blue
                           : Colors.grey,
                       ),
                     );
                   }),
                   Obx(() {
-                    if (chatController.isToolsEnabled) {
+                    if (chatController.isToolsEnabledObs.value) {
                       return Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -676,27 +665,26 @@ class ChatPanel extends StatelessWidget {
                   const SizedBox(width: 8),
                   InkWell(
                     onTap: chatController.toggleTools,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
+                    borderRadius: BorderRadius.circular(16),                    child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: chatController.isToolsEnabled
+                        color: chatController.isToolsEnabledObs.value
                           ? Colors.blue.withOpacity(0.1)
                           : Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: chatController.isToolsEnabled
+                          color: chatController.isToolsEnabledObs.value
                             ? Colors.blue
                             : Colors.grey,
                           width: 1,
                         ),
                       ),
                       child: Icon(
-                        chatController.isToolsEnabled
+                        chatController.isToolsEnabledObs.value
                           ? Icons.toggle_on
                           : Icons.toggle_off,
                         size: 16,
-                        color: chatController.isToolsEnabled
+                        color: chatController.isToolsEnabledObs.value
                           ? Colors.blue
                           : Colors.grey,
                       ),
@@ -707,31 +695,34 @@ class ChatPanel extends StatelessWidget {
             }
             return const SizedBox.shrink();
           }),
-          const SizedBox(width: 8),
-          // 工具状态提示
-          if (!chatController.isToolsAvailable)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.warning, size: 12, color: Colors.orange),
-                  const SizedBox(width: 4),
-                  Text(
-                    '未配置',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.orange.shade700,
+          const SizedBox(width: 8),          // 工具状态提示
+          Obx(() {
+            if (!chatController.isToolsAvailableObs.value) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.warning, size: 12, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    Text(
+                      '未配置',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.orange.shade700,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
           const Spacer(),
           // 配置按钮
           IconButton(

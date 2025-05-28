@@ -49,11 +49,9 @@ class FunctionCall {
   };
   
   /// 获取解析后的参数
-  Map<String, dynamic> getParsedArguments() {
-    try {
+  Map<String, dynamic> getParsedArguments() {    try {
       return jsonDecode(arguments);
     } catch (e) {
-      print('解析工具调用参数失败: $e');
       return {};
     }
   }
