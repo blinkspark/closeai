@@ -118,10 +118,43 @@ class ZhipuSearchService extends GetxService {
           },
         ),
       );
-      
-      print('智谱搜索API响应状态: ${response.statusCode}');
+        print('智谱搜索API响应状态: ${response.statusCode}');
       
       if (response.statusCode == 200) {
+        // 🐛 [DEBUG] 打印搜索结果详情
+        final responseData = response.data;
+        print('🐛 [DEBUG] ========== 搜索结果详情 ==========');
+        print('🐛 [DEBUG] 搜索查询: $searchQuery');
+        print('🐛 [DEBUG] 搜索引擎: $searchEngine');
+        print('🐛 [DEBUG] 请求结果数: $count');
+        
+        if (responseData is Map<String, dynamic>) {
+          final searchResults = responseData['search_result'] as List?;
+          final searchIntent = responseData['search_intent'] as List?;
+          
+          print('🐛 [DEBUG] 实际返回结果数: ${searchResults?.length ?? 0}');
+          
+          if (searchIntent != null && searchIntent.isNotEmpty) {
+            final intent = searchIntent.first;
+            print('🐛 [DEBUG] 搜索意图关键词: ${intent['keywords']}');
+          }
+          
+          if (searchResults != null) {
+            for (int i = 0; i < searchResults.length && i < 3; i++) {
+              final result = searchResults[i];
+              print('🐛 [DEBUG] 结果${i + 1}: ${result['title']}');
+              print('🐛 [DEBUG]   来源: ${result['media']}');
+              print('🐛 [DEBUG]   链接: ${result['link']}');
+              if (result['content'] != null) {
+                final content = result['content'].toString();
+                final preview = content.length > 100 ? '${content.substring(0, 100)}...' : content;
+                print('🐛 [DEBUG]   内容预览: $preview');
+              }
+            }
+          }
+        }
+        print('🐛 [DEBUG] =====================================');
+        
         return response.data;
       } else {
         throw Exception('搜索请求失败，状态码: ${response.statusCode}');
@@ -151,14 +184,20 @@ class ZhipuSearchService extends GetxService {
       throw Exception('搜索失败: $e');
     }
   }
-  
-  /// 格式化搜索结果为工具响应
+    /// 格式化搜索结果为工具响应
   String formatSearchResults(Map<String, dynamic> searchResponse) {
     try {
+      print('🐛 [DEBUG] ========== 格式化搜索结果 ==========');
+      
       final searchIntent = searchResponse['search_intent'] as List?;
       final searchResults = searchResponse['search_result'] as List?;
       
+      print('🐛 [DEBUG] 原始响应数据类型: ${searchResponse.runtimeType}');
+      print('🐛 [DEBUG] 搜索意图数据: ${searchIntent?.length ?? 0} 条');
+      print('🐛 [DEBUG] 搜索结果数据: ${searchResults?.length ?? 0} 条');
+      
       if (searchResults == null || searchResults.isEmpty) {
+        print('🐛 [DEBUG] 无搜索结果，返回提示信息');
         return '未找到相关搜索结果，请尝试使用不同的关键词。';
       }
       
@@ -170,15 +209,18 @@ class ZhipuSearchService extends GetxService {
         if (intent['keywords'] != null) {
           buffer.writeln('搜索关键词: ${intent['keywords']}');
           buffer.writeln();
+          print('🐛 [DEBUG] 添加搜索关键词: ${intent['keywords']}');
         }
       }
       
       buffer.writeln('搜索结果 (共${searchResults.length}条):');
       buffer.writeln();
+      print('🐛 [DEBUG] 开始格式化 ${searchResults.length} 条结果');
       
       for (int i = 0; i < searchResults.length && i < 8; i++) {
         final result = searchResults[i];
         buffer.writeln('${i + 1}. **${result['title'] ?? '无标题'}**');
+        print('🐛 [DEBUG] 格式化结果${i + 1}: ${result['title']}');
         
         if (result['media'] != null) {
           buffer.writeln('   来源: ${result['media']}');
@@ -208,7 +250,11 @@ class ZhipuSearchService extends GetxService {
       buffer.writeln('---');
       buffer.writeln('搜索时间: ${DateTime.now().toString().substring(0, 19)}');
       
-      return buffer.toString();
+      final formattedResult = buffer.toString();
+      print('🐛 [DEBUG] 格式化完成，总长度: ${formattedResult.length} 字符');
+      print('🐛 [DEBUG] ========================================');
+      
+      return formattedResult;
     } catch (e) {
       print('格式化搜索结果失败: $e');
       return '搜索结果格式化失败，但搜索已完成。原始数据: ${searchResponse.toString().substring(0, 200)}...';

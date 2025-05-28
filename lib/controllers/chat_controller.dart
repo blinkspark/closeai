@@ -163,11 +163,16 @@ class ChatController extends GetxController {
   Future<int> getMessageCountBySessionId(int sessionId) async {
     return await _messageService.getMessageCountBySessionId(sessionId);
   }
-  
-  /// 切换工具开关
+    /// 切换工具开关
   void toggleTools() {
+    final oldState = isToolsEnabled;
     _appStateController.setToolsEnabled(!isToolsEnabled);
-    print('工具开关状态: ${isToolsEnabled ? "启用" : "禁用"}');
+    print('🐛 [DEBUG] ========== 工具开关切换 ==========');
+    print('🐛 [DEBUG] 之前状态: ${oldState ? "启用" : "禁用"}');
+    print('🐛 [DEBUG] 当前状态: ${isToolsEnabled ? "启用" : "禁用"}');
+    print('🐛 [DEBUG] 工具可用性: $isToolsAvailable');
+    print('🐛 [DEBUG] 状态描述: $toolsStatusDescription');
+    print('🐛 [DEBUG] ===================================');
   }
   
   /// 发送消息（支持工具调用）
@@ -200,10 +205,12 @@ class ChatController extends GetxController {
         role: 'assistant',
         session: session,
       );
-      
-      // 🐛 调试日志：检查API调用参数
+        // 🐛 调试日志：检查API调用参数
+      print('🐛 [DEBUG] ========== ChatController发送消息 ==========');
       print('🐛 [DEBUG] 即将调用API，enableTools: $isToolsEnabled');
       print('🐛 [DEBUG] 消息历史长度: ${messageHistory.length}');
+      print('🐛 [DEBUG] 工具可用性: $isToolsAvailable');
+      print('🐛 [DEBUG] 会话ID: ${session.id}');
       
       // 调用OpenAI API（带工具支持）
       final response = await _openAIService.createChatCompletionWithTools(
@@ -213,39 +220,62 @@ class ChatController extends GetxController {
         stream: false,
       );
       
+      print('🐛 [DEBUG] API调用完成，响应类型: ${response.runtimeType}');
+      
       if (response != null) {
         final choice = response['choices']?[0];
         final message = choice?['message'];
         final responseContent = message?['content'] ?? '';
+        
+        print('🐛 [DEBUG] 响应内容长度: ${responseContent.length}');
+        print('🐛 [DEBUG] 响应内容预览: ${responseContent.length > 100 ? responseContent.substring(0, 100) + '...' : responseContent}');
         
         // 检查是否有搜索结果信息
         final searchResultsInfo = message?['search_results_info'];
         final toolCalls = message?['tool_calls'] ?? message?['original_tool_calls'];
         String finalContent = responseContent;
         
-        if (searchResultsInfo != null) {
+        print('🐛 [DEBUG] 搜索结果信息存在: ${searchResultsInfo != null}');
+        print('🐛 [DEBUG] 工具调用存在: ${toolCalls != null}');
+          if (searchResultsInfo != null) {
+          print('🐛 [DEBUG] 发现搜索结果信息');
           // 从搜索结果信息中提取数据
           final queries = searchResultsInfo['queries'] as List<String>? ?? [];
           final totalCount = searchResultsInfo['total_count'] as int? ?? 0;
+          
+          print('🐛 [DEBUG] 搜索查询数量: ${queries.length}');
+          print('🐛 [DEBUG] 搜索查询内容: $queries');
+          print('🐛 [DEBUG] 总结果数: $totalCount');
           
           if (queries.isNotEmpty) {
             searchResultCount.value = totalCount;
             lastSearchQueries.assignAll(queries);
             
             final searchInfo = '🔍 已搜索到 $totalCount 个网页\n搜索内容: ${queries.join('、')}';
+            print('🐛 [DEBUG] 生成搜索信息: $searchInfo');
             finalContent = '$searchInfo\n\n$responseContent';
           }
         } else if (toolCalls != null && toolCalls is List && toolCalls.isNotEmpty) {
+          print('🐛 [DEBUG] 发现工具调用，使用备用方案提取搜索信息');
           // 备用方案：从工具调用中提取信息
           final searchInfo = _extractSearchInfo(toolCalls);
+          print('🐛 [DEBUG] 提取的搜索信息: $searchInfo');
           if (searchInfo.isNotEmpty) {
             finalContent = '$searchInfo\n\n$responseContent';
           }
+        } else {
+          print('🐛 [DEBUG] 未发现搜索结果信息或工具调用');
         }
+        
+        print('🐛 [DEBUG] 最终内容长度: ${finalContent.length}');
+        print('🐛 [DEBUG] 最终内容预览: ${finalContent.length > 150 ? finalContent.substring(0, 150) + '...' : finalContent}');
         
         // 更新助手消息内容
         updateStreamingMessage(finalContent);
         await finishStreamingMessage();
+        
+        print('🐛 [DEBUG] 消息处理完成');
+        print('🐛 [DEBUG] ============================================');
       }
       
     } catch (e) {
@@ -265,28 +295,48 @@ class ChatController extends GetxController {
       isLoading.value = false;
     }
   }
-  
-  /// 提取搜索信息
+    /// 提取搜索信息
   String _extractSearchInfo(List toolCalls) {
+    print('🐛 [DEBUG] ========== 提取搜索信息 ==========');
+    print('🐛 [DEBUG] 工具调用数量: ${toolCalls.length}');
+    
     final searchCalls = toolCalls.where((call) =>
       call['function']?['name'] == 'zhipu_web_search').toList();
     
-    if (searchCalls.isEmpty) return '';
+    print('🐛 [DEBUG] 搜索工具调用数量: ${searchCalls.length}');
+    
+    if (searchCalls.isEmpty) {
+      print('🐛 [DEBUG] 未找到搜索工具调用');
+      return '';
+    }
     
     final searchQueries = <String>[];
     int totalResults = 0;
     
-    for (final call in searchCalls) {
+    for (int i = 0; i < searchCalls.length; i++) {
+      final call = searchCalls[i];
+      print('🐛 [DEBUG] 处理搜索调用 ${i + 1}:');
+      print('🐛 [DEBUG]   工具调用结构: ${call.keys.toList()}');
+      
       try {
         final arguments = call['function']['arguments'];
+        print('🐛 [DEBUG]   参数类型: ${arguments.runtimeType}');
+        print('🐛 [DEBUG]   参数内容: $arguments');
+        
         if (arguments is String) {
           final Map<String, dynamic> args =
             arguments.startsWith('{') ?
               Map<String, dynamic>.from(
                 jsonDecode(arguments)
               ) : {'search_query': arguments};
+          
+          print('🐛 [DEBUG]   解析后的参数: $args');
+          
           final query = args['search_query'] as String?;
           final count = args['count'] as int? ?? 5;
+          
+          print('🐛 [DEBUG]   搜索查询: $query');
+          print('🐛 [DEBUG]   结果数量: $count');
           
           if (query != null && query.isNotEmpty) {
             searchQueries.add(query);
@@ -294,17 +344,28 @@ class ChatController extends GetxController {
           }
         }
       } catch (e) {
-        print('解析搜索参数失败: $e');
+        print('🐛 [DEBUG] 解析搜索参数失败: $e');
       }
     }
     
-    if (searchQueries.isEmpty) return '';
+    print('🐛 [DEBUG] 提取完成:');
+    print('🐛 [DEBUG]   查询列表: $searchQueries');
+    print('🐛 [DEBUG]   总结果数: $totalResults');
+    
+    if (searchQueries.isEmpty) {
+      print('🐛 [DEBUG] 未提取到有效搜索查询');
+      return '';
+    }
     
     // 更新搜索状态
     searchResultCount.value = totalResults;
     lastSearchQueries.assignAll(searchQueries);
     
-    return '🔍 已搜索到 $totalResults 个网页\n搜索内容: ${searchQueries.join('、')}';
+    final result = '🔍 已搜索到 $totalResults 个网页\n搜索内容: ${searchQueries.join('、')}';
+    print('🐛 [DEBUG] 生成的搜索信息: $result');
+    print('🐛 [DEBUG] ====================================');
+    
+    return result;
   }
   
   /// 构建消息历史

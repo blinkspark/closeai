@@ -380,8 +380,7 @@ class OpenAIService extends GetxService {
         throw Exception('未知的工具: $functionName');
     }
   }
-  
-  /// 执行智谱搜索
+    /// 执行智谱搜索
   Future<String> _executeZhipuSearch(Map<String, dynamic> arguments) async {
     if (!_zhipuSearchService.isConfigured) {
       throw Exception('智谱AI搜索服务未配置，请先在设置中配置API Key');
@@ -393,7 +392,11 @@ class OpenAIService extends GetxService {
       final count = arguments['count'] as int? ?? 5;
       final searchRecencyFilter = arguments['search_recency_filter'] as String? ?? 'noLimit';
       
-      print('执行智谱搜索: $searchQuery (引擎: $searchEngine, 数量: $count)');
+      print('🐛 [DEBUG] ========== 执行智谱搜索 ==========');
+      print('🐛 [DEBUG] 搜索查询: $searchQuery');
+      print('🐛 [DEBUG] 搜索引擎: $searchEngine');
+      print('🐛 [DEBUG] 结果数量: $count');
+      print('🐛 [DEBUG] 时间过滤: $searchRecencyFilter');
       
       final searchResponse = await _zhipuSearchService.webSearch(
         searchQuery: searchQuery,
@@ -401,13 +404,18 @@ class OpenAIService extends GetxService {
         count: count,
         searchRecencyFilter: searchRecencyFilter,
       );
-      
-      // 获取实际搜索结果数量
+        // 获取实际搜索结果数量
       final searchResults = searchResponse['search_result'] as List?;
       final actualCount = searchResults?.length ?? 0;
       
+      print('🐛 [DEBUG] 搜索API调用完成');
+      print('🐛 [DEBUG] 实际获得结果数: $actualCount');
+      print('🐛 [DEBUG] 原始响应键: ${searchResponse.keys.toList()}');
+      
       final formattedResult = _zhipuSearchService.formatSearchResults(searchResponse);
-      print('搜索完成，实际获得 $actualCount 条结果，格式化结果长度: ${formattedResult.length}');
+      print('🐛 [DEBUG] 格式化结果长度: ${formattedResult.length}');
+      print('🐛 [DEBUG] 格式化结果预览: ${formattedResult.length > 200 ? formattedResult.substring(0, 200) + '...' : formattedResult}');
+      print('🐛 [DEBUG] ======================================');
       
       return formattedResult;
     } catch (e) {
