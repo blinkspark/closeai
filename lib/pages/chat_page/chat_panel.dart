@@ -385,15 +385,14 @@ class ChatPanel extends StatelessWidget {
                               '当前预设: ${prompt.name}',
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
-                            Spacer(),
-                            if (prompt.enableVariables)
+                            Spacer(),                            if (prompt.enableVariables)
                               Chip(
                                 label: Text(
                                   '支持变量',
                                   style: TextStyle(fontSize: 10),
                                 ),
                                 backgroundColor: Colors.green.withAlpha(
-                                  (255 * 0.2) as int,
+                                  (255 * 0.2).toInt(),
                                 ),
                               ),
                           ],
@@ -555,7 +554,6 @@ class ChatPanel extends StatelessWidget {
           ),
     );
   }
-
   Future<void> _sendMessage(
     SessionController sessionController,
     TextEditingController inputController,
@@ -567,6 +565,15 @@ class ChatPanel extends StatelessWidget {
 
     final content = inputController.text.trim();
     inputController.clear(); // 立即清空输入框
+
+    // 打印当前的系统提示词
+    final systemPromptController = Get.find<SystemPromptController>();
+    final currentSystemPrompt = systemPromptController.getCurrentPromptContent();
+    print('=== 当前系统提示词 ===');
+    print(currentSystemPrompt);
+    print('=== 用户输入 ===');
+    print(content);
+    print('==================');
 
     // 异步发送消息，不等待完成
     sessionController.sendMessage(

@@ -7,6 +7,8 @@ import '../services/message_service.dart';
 import '../services/openai_service.dart';
 import '../services/zhipu_search_service.dart';
 import 'app_state_controller.dart';
+import 'system_prompt_controller.dart';
+import '../defs.dart';
 
 /// 聊天控制器，负责管理聊天相关的UI状态和业务逻辑
 class ChatController extends GetxController {
@@ -367,13 +369,32 @@ class ChatController extends GetxController {
     
     return result;
   }
-  
-  /// 构建消息历史
+    /// 构建消息历史
   List<Map<String, dynamic>> _buildMessageHistory() {
-    return messages.map((message) => {
+    final messageHistory = <Map<String, dynamic>>[];
+    
+    // 添加系统提示词作为第一条消息
+    try {
+      final systemPromptController = Get.find<SystemPromptController>();
+      final systemPrompt = systemPromptController.getCurrentPromptContent();
+      
+      if (systemPrompt.isNotEmpty) {
+        messageHistory.add({
+          'role': MessageRole.system,
+          'content': systemPrompt,
+        });
+      }
+    } catch (e) {
+      print('🐛 [DEBUG] Error getting system prompt: $e');
+    }
+    
+    // 添加对话历史
+    messageHistory.addAll(messages.map((message) => {
       'role': message.role,
       'content': message.content,
-    }).toList();
+    }).toList());
+    
+    return messageHistory;
   }
   
   
