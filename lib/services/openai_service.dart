@@ -37,6 +37,9 @@ class OpenAIService extends GetxService {
         apiKey: provider.apiKey,
         baseUrl: provider.baseUrl ?? 'https://api.openai.com/v1',
       );
+      print('OpenAI客户端初始化成功: ${provider.name} - ${selectedModel.modelId}');
+    } else {
+      print('OpenAI客户端初始化失败: 模型或供应商为空');
     }
   }
   
@@ -111,7 +114,19 @@ class OpenAIService extends GetxService {
     if (enableTools) {
       tools = ToolRegistry.getEnabledTools(enableWebSearch: true);
       toolChoice = tools.isNotEmpty ? 'auto' : null;
-      print('启用工具调用，可用工具数量: ${tools.length}');
+      print('🐛 [DEBUG] 启用工具调用，可用工具数量: ${tools.length}');
+      if (tools.isNotEmpty) {
+        print('🐛 [DEBUG] 可用工具: ${tools.map((t) => t['function']['name']).join(', ')}');
+        print('🐛 [DEBUG] 工具详情: ${tools.map((t) => t['function']).toList()}');
+      } else {
+        print('🐛 [DEBUG] 警告：工具已启用但没有可用工具！');
+      }
+      
+      // 🐛 调试：检查智谱搜索服务状态
+      print('🐛 [DEBUG] 智谱搜索服务配置状态: ${_zhipuSearchService.isConfigured}');
+      print('🐛 [DEBUG] 智谱搜索服务状态: ${_zhipuSearchService.configurationStatus}');
+    } else {
+      print('🐛 [DEBUG] 工具调用已禁用');
     }
     
     try {
@@ -144,7 +159,18 @@ class OpenAIService extends GetxService {
       
       if (toolCalls != null && toolCalls is List && toolCalls.isNotEmpty) {
         print('检测到工具调用，数量: ${toolCalls.length}');
-        return await _handleToolCalls(response, messages);
+        final finalResponse = await _handleToolCalls(response, messages);
+        
+        // 将工具调用信息添加到最终响应中，以便聊天控制器可以提取搜索信息
+        if (finalResponse['choices'] != null && finalResponse['choices'].isNotEmpty) {
+          final finalChoice = finalResponse['choices'][0];
+          final finalMessage = finalChoice['message'];
+          
+          // 保留原始工具调用信息
+          finalMessage['original_tool_calls'] = toolCalls;
+        }
+        
+        return finalResponse;
       }
       
       return response;
@@ -265,6 +291,9 @@ class OpenAIService extends GetxService {
     final updatedMessages = List<Map<String, dynamic>>.from(originalMessages);
     updatedMessages.add(message);
     
+    // 存储搜索结果信息
+    final searchResultsInfo = <String, dynamic>{};
+    
     // 执行每个工具调用
     for (final toolCall in toolCalls) {
       final toolCallId = toolCall['id'];
@@ -282,6 +311,22 @@ class OpenAIService extends GetxService {
           content: result,
         );
         print('工具调用成功: ${result.length} 字符');
+        
+        // 如果是搜索工具，保存搜索信息
+        if (functionName == 'zhipu_web_search') {
+          try {
+            final Map<String, dynamic> args = jsonDecode(arguments);
+            final searchQuery = args['search_query'] as String?;
+            final count = args['count'] as int? ?? 5;
+            
+            if (searchQuery != null) {
+              searchResultsInfo['queries'] = (searchResultsInfo['queries'] as List<String>? ?? [])..add(searchQuery);
+              searchResultsInfo['total_count'] = (searchResultsInfo['total_count'] as int? ?? 0) + count;
+            }
+          } catch (e) {
+            print('解析搜索参数失败: $e');
+          }
+        }
       } catch (e) {
         print('工具调用失败: $e');
         toolResponse = ToolResponse.error(
@@ -297,11 +342,20 @@ class OpenAIService extends GetxService {
     print('重新调用API获取最终回答，消息数量: ${updatedMessages.length}');
     
     // 再次调用API获取最终回答
-    return await currentClient!.chat.completions.create(
+    final finalResponse = await currentClient!.chat.completions.create(
       model: currentModelId!,
       messages: updatedMessages,
       temperature: 0.7,
     );
+    
+    // 将搜索信息添加到响应中
+    if (searchResultsInfo.isNotEmpty && finalResponse['choices'] != null) {
+      final finalChoice = finalResponse['choices'][0];
+      final finalMessage = finalChoice['message'];
+      finalMessage['search_results_info'] = searchResultsInfo;
+    }
+    
+    return finalResponse;
   }
   
   /// 执行具体的工具调用
@@ -339,7 +393,7 @@ class OpenAIService extends GetxService {
       final count = arguments['count'] as int? ?? 5;
       final searchRecencyFilter = arguments['search_recency_filter'] as String? ?? 'noLimit';
       
-      print('执行智谱搜索: $searchQuery');
+      print('执行智谱搜索: $searchQuery (引擎: $searchEngine, 数量: $count)');
       
       final searchResponse = await _zhipuSearchService.webSearch(
         searchQuery: searchQuery,
@@ -348,8 +402,12 @@ class OpenAIService extends GetxService {
         searchRecencyFilter: searchRecencyFilter,
       );
       
+      // 获取实际搜索结果数量
+      final searchResults = searchResponse['search_result'] as List?;
+      final actualCount = searchResults?.length ?? 0;
+      
       final formattedResult = _zhipuSearchService.formatSearchResults(searchResponse);
-      print('搜索完成，结果长度: ${formattedResult.length}');
+      print('搜索完成，实际获得 $actualCount 条结果，格式化结果长度: ${formattedResult.length}');
       
       return formattedResult;
     } catch (e) {

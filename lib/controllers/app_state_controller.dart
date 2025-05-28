@@ -34,8 +34,10 @@ class AppStateController extends GetxController {
   }
 
   void setToolsEnabled(bool enabled) async {
+    print('🐛 [DEBUG] 设置工具开关状态: $enabled (之前: ${isToolsEnabled.value})');
     isToolsEnabled.value = enabled;
     await saveConfig();
+    print('🐛 [DEBUG] 工具开关状态已保存: ${isToolsEnabled.value}');
   }
 
   Map<String, dynamic> toJson() {
@@ -51,9 +53,14 @@ class AppStateController extends GetxController {
   }
 
   Future<void> loadConfig() async {
+    print('🐛 [DEBUG] 开始加载配置文件: ${configFile.path}');
     if (await configFile.exists()) {
       final json = await configFile.readAsString();
+      print('🐛 [DEBUG] 配置文件内容: $json');
       fromJson(jsonDecode(json));
+      print('🐛 [DEBUG] 配置加载完成 - 工具开关: ${isToolsEnabled.value}');
+    } else {
+      print('🐛 [DEBUG] 配置文件不存在，使用默认值 - 工具开关: ${isToolsEnabled.value}');
     }
   }
 

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'dart:convert';
 
 import '../models/message.dart';
 import '../models/session.dart';
@@ -19,6 +20,8 @@ class ChatController extends GetxController {
   final currentSessionId = Rxn<int>();
   final streamingMessage = Rxn<Message>();
   final isStreaming = false.obs;
+  final searchResultCount = 0.obs;
+  final lastSearchQueries = <String>[].obs;
   
   // 工具开关状态的getter
   bool get isToolsEnabled => _appStateController.isToolsEnabled.value;
@@ -147,6 +150,8 @@ class ChatController extends GetxController {
     currentSessionId.value = null;
     streamingMessage.value = null;
     isStreaming.value = false;
+    searchResultCount.value = 0;
+    lastSearchQueries.clear();
   }
 
   /// 获取消息总数
@@ -175,6 +180,11 @@ class ChatController extends GetxController {
     try {
       isLoading.value = true;
       
+      // 🐛 调试日志：检查工具状态
+      print('🐛 [DEBUG] 工具开关状态: $isToolsEnabled');
+      print('🐛 [DEBUG] 工具可用性: $isToolsAvailable');
+      print('🐛 [DEBUG] 工具状态描述: $toolsStatusDescription');
+      
       // 添加用户消息
       await addMessage(
         role: 'user',
@@ -191,6 +201,10 @@ class ChatController extends GetxController {
         session: session,
       );
       
+      // 🐛 调试日志：检查API调用参数
+      print('🐛 [DEBUG] 即将调用API，enableTools: $isToolsEnabled');
+      print('🐛 [DEBUG] 消息历史长度: ${messageHistory.length}');
+      
       // 调用OpenAI API（带工具支持）
       final response = await _openAIService.createChatCompletionWithTools(
         messages: messageHistory,
@@ -204,8 +218,33 @@ class ChatController extends GetxController {
         final message = choice?['message'];
         final responseContent = message?['content'] ?? '';
         
+        // 检查是否有搜索结果信息
+        final searchResultsInfo = message?['search_results_info'];
+        final toolCalls = message?['tool_calls'] ?? message?['original_tool_calls'];
+        String finalContent = responseContent;
+        
+        if (searchResultsInfo != null) {
+          // 从搜索结果信息中提取数据
+          final queries = searchResultsInfo['queries'] as List<String>? ?? [];
+          final totalCount = searchResultsInfo['total_count'] as int? ?? 0;
+          
+          if (queries.isNotEmpty) {
+            searchResultCount.value = totalCount;
+            lastSearchQueries.assignAll(queries);
+            
+            final searchInfo = '🔍 已搜索到 $totalCount 个网页\n搜索内容: ${queries.join('、')}';
+            finalContent = '$searchInfo\n\n$responseContent';
+          }
+        } else if (toolCalls != null && toolCalls is List && toolCalls.isNotEmpty) {
+          // 备用方案：从工具调用中提取信息
+          final searchInfo = _extractSearchInfo(toolCalls);
+          if (searchInfo.isNotEmpty) {
+            finalContent = '$searchInfo\n\n$responseContent';
+          }
+        }
+        
         // 更新助手消息内容
-        updateStreamingMessage(responseContent);
+        updateStreamingMessage(finalContent);
         await finishStreamingMessage();
       }
       
@@ -225,6 +264,47 @@ class ChatController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+  
+  /// 提取搜索信息
+  String _extractSearchInfo(List toolCalls) {
+    final searchCalls = toolCalls.where((call) =>
+      call['function']?['name'] == 'zhipu_web_search').toList();
+    
+    if (searchCalls.isEmpty) return '';
+    
+    final searchQueries = <String>[];
+    int totalResults = 0;
+    
+    for (final call in searchCalls) {
+      try {
+        final arguments = call['function']['arguments'];
+        if (arguments is String) {
+          final Map<String, dynamic> args =
+            arguments.startsWith('{') ?
+              Map<String, dynamic>.from(
+                jsonDecode(arguments)
+              ) : {'search_query': arguments};
+          final query = args['search_query'] as String?;
+          final count = args['count'] as int? ?? 5;
+          
+          if (query != null && query.isNotEmpty) {
+            searchQueries.add(query);
+            totalResults += count;
+          }
+        }
+      } catch (e) {
+        print('解析搜索参数失败: $e');
+      }
+    }
+    
+    if (searchQueries.isEmpty) return '';
+    
+    // 更新搜索状态
+    searchResultCount.value = totalResults;
+    lastSearchQueries.assignAll(searchQueries);
+    
+    return '🔍 已搜索到 $totalResults 个网页\n搜索内容: ${searchQueries.join('、')}';
   }
   
   /// 构建消息历史

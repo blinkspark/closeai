@@ -580,12 +580,21 @@ class ChatPanel extends StatelessWidget {
   Widget _buildToolsToggleRow() {
     final chatController = Get.find<ChatController>();
     
-    return Obx(() {
-      return Row(
-        children: [
-          // 工具开关按钮
-          InkWell(
-            onTap: chatController.toggleTools,
+    return Builder(
+      builder: (context) {
+        return Obx(() {
+          return Row(
+            children: [
+              // 工具开关按钮
+              InkWell(
+                onTap: () {
+                  // 如果有搜索结果，显示搜索详情；否则切换工具开关
+                  if (chatController.searchResultCount.value > 0) {
+                    _showSearchDetailsDialog(context, chatController);
+                  } else {
+                    chatController.toggleTools();
+                  }
+                },
             borderRadius: BorderRadius.circular(20),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -612,19 +621,85 @@ class ChatPanel extends StatelessWidget {
                       : Colors.grey,
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    '联网搜索',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: chatController.isToolsEnabled
-                        ? Colors.blue
-                        : Colors.grey,
-                    ),
-                  ),
+                  Obx(() {
+                    final hasSearchResults = chatController.searchResultCount.value > 0;
+                    final searchText = chatController.isToolsEnabled
+                      ? (hasSearchResults
+                          ? '已搜索到 ${chatController.searchResultCount.value} 个网页'
+                          : '联网搜索')
+                      : '联网搜索';
+                    
+                    return Text(
+                      searchText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: chatController.isToolsEnabled
+                          ? Colors.blue
+                          : Colors.grey,
+                      ),
+                    );
+                  }),
+                  Obx(() {
+                    if (chatController.isToolsEnabled) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(width: 4),
+                          Icon(
+                            chatController.searchResultCount.value > 0
+                              ? Icons.info_outline
+                              : Icons.keyboard_arrow_right,
+                            size: 14,
+                            color: Colors.blue,
+                          ),
+                        ],
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
                 ],
               ),
             ),
           ),
+          // 单独的工具开关按钮（当有搜索结果时显示）
+          Obx(() {
+            if (chatController.searchResultCount.value > 0) {
+              return Row(
+                children: [
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: chatController.toggleTools,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: chatController.isToolsEnabled
+                          ? Colors.blue.withOpacity(0.1)
+                          : Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: chatController.isToolsEnabled
+                            ? Colors.blue
+                            : Colors.grey,
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        chatController.isToolsEnabled
+                          ? Icons.toggle_on
+                          : Icons.toggle_off,
+                        size: 16,
+                        color: chatController.isToolsEnabled
+                          ? Colors.blue
+                          : Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          }),
           const SizedBox(width: 8),
           // 工具状态提示
           if (!chatController.isToolsAvailable)
@@ -662,7 +737,83 @@ class ChatPanel extends StatelessWidget {
             padding: const EdgeInsets.all(4),
           ),
         ],
-      );
-    });
+          );
+        });
+      },
+    );
+  }
+
+  /// 显示搜索详情对话框
+  void _showSearchDetailsDialog(BuildContext context, ChatController chatController) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.search, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('搜索详情'),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          height: 300,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '搜索结果数量: ${chatController.searchResultCount.value} 个网页',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              SizedBox(height: 16),
+              Text(
+                '搜索内容:',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              SizedBox(height: 8),
+              Expanded(
+                child: Obx(() {
+                  if (chatController.lastSearchQueries.isEmpty) {
+                    return Text('暂无搜索记录');
+                  }
+                  return ListView.builder(
+                    itemCount: chatController.lastSearchQueries.length,
+                    itemBuilder: (context, index) {
+                      final query = chatController.lastSearchQueries[index];
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 8),
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search, size: 16, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                query,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('关闭'),
+          ),
+        ],
+      ),
+    );
   }
 }

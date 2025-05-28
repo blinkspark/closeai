@@ -68,6 +68,10 @@ class ToolRegistry extends GetxService {
   static List<Map<String, dynamic>> getEnabledTools({
     bool enableWebSearch = true,
   }) {
+    print('🐛 [DEBUG] getEnabledTools调用 - enableWebSearch: $enableWebSearch');
+    print('🐛 [DEBUG] 已注册工具数量: ${_tools.length}');
+    print('🐛 [DEBUG] 已注册工具列表: ${_tools.keys.toList()}');
+    
     final enabledTools = <Map<String, dynamic>>[];
     
     if (enableWebSearch && _tools.containsKey('zhipu_web_search')) {
@@ -75,8 +79,12 @@ class ToolRegistry extends GetxService {
         'type': 'function',
         'function': _tools['zhipu_web_search']!.toJson(),
       });
+      print('🐛 [DEBUG] 智谱搜索工具已添加到启用列表');
+    } else {
+      print('🐛 [DEBUG] 智谱搜索工具未添加 - enableWebSearch: $enableWebSearch, 工具存在: ${_tools.containsKey('zhipu_web_search')}');
     }
     
+    print('🐛 [DEBUG] 最终启用工具数量: ${enabledTools.length}');
     return enabledTools;
   }
   

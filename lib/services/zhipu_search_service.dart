@@ -18,22 +18,33 @@ class ZhipuSearchService extends GetxService {
   /// 从Provider系统加载API Key
   void _loadApiKeyFromProvider() {
     try {
+      print('🐛 [DEBUG] 开始从Provider加载智谱AI API Key');
       if (Get.isRegistered<ProviderController>()) {
         final providerController = Get.find<ProviderController>();
+        print('🐛 [DEBUG] ProviderController已注册，Provider数量: ${providerController.providers.length}');
+        
         final zhipuProvider = providerController.providers
             .map((p) => p.value)
             .where((p) => p.name == 'ZhipuAI')
             .firstOrNull;
         
-        if (zhipuProvider != null &&
-            zhipuProvider.apiKey != null &&
-            zhipuProvider.apiKey!.isNotEmpty) {
-          _apiKey = zhipuProvider.apiKey;
-          print('智谱AI API Key已从Provider加载');
+        print('🐛 [DEBUG] 智谱AI Provider查找结果: ${zhipuProvider != null ? "找到" : "未找到"}');
+        
+        if (zhipuProvider != null) {
+          print('🐛 [DEBUG] 智谱AI Provider详情 - 名称: ${zhipuProvider.name}, API Key存在: ${zhipuProvider.apiKey != null}, API Key非空: ${zhipuProvider.apiKey?.isNotEmpty ?? false}');
+          
+          if (zhipuProvider.apiKey != null && zhipuProvider.apiKey!.isNotEmpty) {
+            _apiKey = zhipuProvider.apiKey;
+            print('🐛 [DEBUG] 智谱AI API Key已从Provider加载: ${zhipuProvider.apiKey!.substring(0, 10)}...');
+          } else {
+            print('🐛 [DEBUG] 智谱AI API Key为空或null');
+          }
         }
+      } else {
+        print('🐛 [DEBUG] ProviderController未注册');
       }
     } catch (e) {
-      print('从Provider加载智谱AI API Key失败: $e');
+      print('🐛 [DEBUG] 从Provider加载智谱AI API Key失败: $e');
     }
   }
   
@@ -44,7 +55,15 @@ class ZhipuSearchService extends GetxService {
   }
   
   /// 检查是否已配置
-  bool get isConfigured => _apiKey != null && _apiKey!.isNotEmpty;
+  bool get isConfigured {
+    // 如果当前没有API Key，尝试重新加载
+    if (_apiKey == null || _apiKey!.isEmpty) {
+      _loadApiKeyFromProvider();
+    }
+    final result = _apiKey != null && _apiKey!.isNotEmpty;
+    print('🐛 [DEBUG] isConfigured检查结果: $result, API Key存在: ${_apiKey != null}');
+    return result;
+  }
   
   /// 获取配置状态
   String get configurationStatus {

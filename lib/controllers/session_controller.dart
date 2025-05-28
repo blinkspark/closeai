@@ -68,31 +68,16 @@ class SessionController extends GetxController {
         return;
       }
       
-      // 创建用户消息
-      await _chatController.addMessage(
-        role: message.role,
+      print('🐛 [DEBUG] SessionController发送消息: ${message.content}');
+      
+      // 使用ChatController的带工具支持的方法
+      await _chatController.sendMessageWithTools(
         content: message.content,
         session: currentSession,
       );
       
-      // 获取当前会话的所有消息用于API调用
-      final allMessages = await _messageService.getMessagesBySessionId(currentSession.id);
-      final jsonMessages = allMessages.map((e) => e.toJson()).toList();
-      
-      // 添加系统提示词
-      final systemPromptController = Get.find<SystemPromptController>();
-      final systemPromptContent = systemPromptController.getCurrentPromptContent();
-      if (systemPromptContent.isNotEmpty) {
-        jsonMessages.insert(0, {
-          'role': 'system',
-          'content': systemPromptContent,
-        });
-      }
-      
-      // 开始流式响应
-      await sendStreamingMessage(jsonMessages, currentSession);
-      
     } catch (e) {
+      print('🐛 [DEBUG] SessionController发送消息失败: $e');
       Get.snackbar('发送失败', e.toString());
     } finally {
       sendingMessage.value = false;
