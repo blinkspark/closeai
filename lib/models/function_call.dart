@@ -162,5 +162,5 @@ class ToolResponse {
   };
   
   @override
-  String toString() => 'ToolResponse(toolCallId: $toolCallId, isSuccess: $isSuccess, content: ${content.length > 50 ? content.substring(0, 50) + '...' : content})';
+  String toString() => 'ToolResponse(toolCallId: $toolCallId, isSuccess: $isSuccess, content: ${content.length > 50 ? '${content.substring(0, 50)}...' : content})';
 }

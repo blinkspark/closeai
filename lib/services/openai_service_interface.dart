@@ -1,4 +1,3 @@
-import '../models/function_call.dart';
 
 /// OpenAI服务抽象接口
 abstract class OpenAIServiceInterface {

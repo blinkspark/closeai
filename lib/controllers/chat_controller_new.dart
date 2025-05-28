@@ -315,7 +315,7 @@ class ChatController extends GetxController {
         }
         
         print('🐛 [DEBUG] 最终内容长度: ${finalContent.length}');
-        print('🐛 [DEBUG] 最终内容预览: ${finalContent.length > 150 ? finalContent.substring(0, 150) + '...' : finalContent}');
+        print('🐛 [DEBUG] 最终内容预览: ${finalContent.length > 150 ? '${finalContent.substring(0, 150)}...' : finalContent}');
         
         // 更新助手消息内容
         updateStreamingMessage(finalContent);

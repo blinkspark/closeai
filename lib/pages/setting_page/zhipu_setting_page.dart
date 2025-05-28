@@ -6,7 +6,7 @@ import '../../models/provider.dart';
 
 /// 智谱AI配置页面
 class ZhipuSettingPage extends StatefulWidget {
-  const ZhipuSettingPage({Key? key}) : super(key: key);
+  const ZhipuSettingPage({super.key});
 
   @override
   State<ZhipuSettingPage> createState() => _ZhipuSettingPageState();

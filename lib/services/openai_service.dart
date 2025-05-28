@@ -44,18 +44,21 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
   }
   
   /// 刷新客户端配置
+  @override
   void refreshClient() {
     _currentClient = null;
     _initializeClient();
   }
   
   /// 获取当前选中的模型ID
+  @override
   String? get currentModelId {
     final modelController = Get.find<ModelController>();
     return modelController.selectedModel.value?.modelId;
   }
   
   /// 检查是否已配置
+  @override
   bool get isConfigured {
     final client = currentClient;
     final modelId = currentModelId;
@@ -73,6 +76,7 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
   }
   
   /// 获取配置状态信息
+  @override
   String get configurationStatus {
     if (currentClient == null) {
       return '未找到OpenAI客户端配置';
@@ -90,6 +94,7 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
   }
   
   /// 发送聊天完成请求（带工具支持）
+  @override
   Future<Map<String, dynamic>?> createChatCompletionWithTools({
     required List<Map<String, dynamic>> messages,
     bool enableTools = false,
@@ -157,6 +162,7 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
   }
 
   /// 发送聊天完成请求（原有方法保持兼容）
+  @override
   Future<Map<String, dynamic>?> createChatCompletion({
     required List<Map<String, dynamic>> messages,
     int? maxTokens,
@@ -193,6 +199,7 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
   }
 
   /// 发送流式聊天完成请求
+  @override
   Stream<String> createChatCompletionStream({
     required List<Map<String, dynamic>> messages,
     int? maxTokens,

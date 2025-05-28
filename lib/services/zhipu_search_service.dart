@@ -48,6 +48,7 @@ class ZhipuSearchService extends GetxService implements SearchServiceInterface {
   }
   
   /// 检查是否已配置
+  @override
   bool get isConfigured {
     // 如果当前没有API Key，尝试重新加载
     if (_apiKey == null || _apiKey!.isEmpty) {
@@ -57,6 +58,7 @@ class ZhipuSearchService extends GetxService implements SearchServiceInterface {
   }
   
   /// 获取配置状态
+  @override
   String get configurationStatus {
     if (!isConfigured) {
       return '智谱AI API Key未配置';
@@ -65,6 +67,7 @@ class ZhipuSearchService extends GetxService implements SearchServiceInterface {
   }
   
   /// 执行网页搜索
+  @override
   Future<Map<String, dynamic>> webSearch({
     required String searchQuery,
     String searchEngine = 'search_std',
