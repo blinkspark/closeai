@@ -40,6 +40,8 @@ class Completions {
   Future<Map<String, dynamic>> create({
     required String model,
     required List<Map<String, dynamic>> messages,
+    List<Map<String, dynamic>>? tools,
+    dynamic toolChoice,
     int? maxTokens,
     double? temperature,
     double? topP,
@@ -56,6 +58,8 @@ class Completions {
       data: {
         'model': model,
         'messages': messages,
+        if (tools != null) 'tools': tools,
+        if (toolChoice != null) 'tool_choice': toolChoice,
         if (maxTokens != null) 'max_tokens': maxTokens,
         if (temperature != null) 'temperature': temperature,
         if (topP != null) 'top_p': topP,
@@ -79,6 +83,8 @@ class Completions {
   Stream<String> createStream({
     required String model,
     required List<Map<String, dynamic>> messages,
+    List<Map<String, dynamic>>? tools,
+    dynamic toolChoice,
     int? maxTokens,
     double? temperature,
     double? topP,
@@ -95,6 +101,8 @@ class Completions {
         'model': model,
         'messages': messages,
         'stream': true,
+        if (tools != null) 'tools': tools,
+        if (toolChoice != null) 'tool_choice': toolChoice,
         if (maxTokens != null) 'max_tokens': maxTokens,
         if (temperature != null) 'temperature': temperature,
         if (topP != null) 'top_p': topP,

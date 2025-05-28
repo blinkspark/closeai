@@ -8,6 +8,8 @@ import 'package:get/get.dart';
 import '../../controllers/session_controller.dart';
 import '../../controllers/model_controller.dart';
 import '../../controllers/system_prompt_controller.dart';
+import '../../controllers/chat_controller.dart';
+import '../setting_page/zhipu_setting_page.dart';
 
 class ChatPanel extends StatelessWidget {
   const ChatPanel({super.key});
@@ -153,10 +155,16 @@ class ChatPanel extends StatelessWidget {
                 ),
                 Padding(
                   padding: EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  child: Column(
                     children: [
-                      Expanded(
+                      // 工具开关行
+                      _buildToolsToggleRow(),
+                      SizedBox(height: 8),
+                      // 输入框行
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
                         child: CallbackShortcuts(
                           bindings: {
                             const SingleActivator(
@@ -214,6 +222,8 @@ class ChatPanel extends StatelessWidget {
                                 )
                                 : Icon(Icons.send),
                         tooltip: isSending ? '发送中...' : '发送',
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -564,5 +574,95 @@ class ChatPanel extends StatelessWidget {
         ..content = content
         ..role = MessageRole.user,
     );
+  }
+
+  /// 构建工具开关行
+  Widget _buildToolsToggleRow() {
+    final chatController = Get.find<ChatController>();
+    
+    return Obx(() {
+      return Row(
+        children: [
+          // 工具开关按钮
+          InkWell(
+            onTap: chatController.toggleTools,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: chatController.isToolsEnabled
+                  ? Colors.blue.withOpacity(0.1)
+                  : Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: chatController.isToolsEnabled
+                    ? Colors.blue
+                    : Colors.grey,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.search,
+                    size: 16,
+                    color: chatController.isToolsEnabled
+                      ? Colors.blue
+                      : Colors.grey,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '联网搜索',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: chatController.isToolsEnabled
+                        ? Colors.blue
+                        : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 工具状态提示
+          if (!chatController.isToolsAvailable)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.warning, size: 12, color: Colors.orange),
+                  const SizedBox(width: 4),
+                  Text(
+                    '未配置',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const Spacer(),
+          // 配置按钮
+          IconButton(
+            onPressed: () {
+              Get.to(() => const ZhipuSettingPage());
+            },
+            icon: const Icon(Icons.settings, size: 16),
+            tooltip: '智谱AI配置',
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: const EdgeInsets.all(4),
+          ),
+        ],
+      );
+    });
   }
 }

@@ -16,6 +16,8 @@ import 'services/session_service_impl.dart';
 import 'services/system_prompt_service.dart';
 import 'services/system_prompt_service_impl.dart';
 import 'services/openai_service.dart';
+import 'services/zhipu_search_service.dart';
+import 'services/tool_registry.dart';
 import 'models/model.dart';
 import 'models/provider.dart';
 import 'models/session.dart';
@@ -36,21 +38,27 @@ void main() async {
       SystemPromptSchema,
     ], directory: supportPath);
   });
-  // 注册服务层
+  // 注册基础服务层
   Get.put<MessageService>(MessageServiceImpl());
   Get.put<SessionService>(SessionServiceImpl());
   Get.put<SystemPromptService>(SystemPromptServiceImpl());
   
-  // 注册控制器
+  // 注册基础控制器
   Get.put(AppStateController());
   Get.put(ProviderController());
   Get.put(ModelController());
-  Get.put(ChatController());
-  Get.put(SessionController());
   Get.put(SystemPromptController());
   
-  // 注册OpenAI服务 - 使用动态配置
+  // 注册依赖Provider的服务（在Provider控制器之后）
+  Get.put(ZhipuSearchService());
+  Get.put(ToolRegistry());
   Get.put(OpenAIService());
+  
+  // 注册依赖服务的控制器（在服务之后）
+  Get.put(ChatController());
+  
+  // 注册依赖其他控制器的控制器（最后注册）
+  Get.put(SessionController());
   
   // 初始化默认系统提示词
   final systemPromptService = Get.find<SystemPromptService>();
