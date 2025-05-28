@@ -10,6 +10,11 @@ class ZhipuSearchService extends GetxService implements SearchServiceInterface {
   
   String? _apiKey;
   
+  // 缓存最近的搜索结果
+  final lastSearchResponse = Rxn<Map<String, dynamic>>();
+  final lastSearchQueries = <String>[].obs;
+  final lastSearchResults = <Map<String, dynamic>>[].obs;
+  
   @override
   void onInit() {
     super.onInit();
@@ -98,13 +103,33 @@ class ZhipuSearchService extends GetxService implements SearchServiceInterface {
             'Authorization': 'Bearer $_apiKey',
             'Content-Type': 'application/json',
           },
-        ),      );
-      
-      if (response.statusCode == 200) {
-        return response.data;
+        ),      );      if (response.statusCode == 200) {
+        final searchResponse = response.data as Map<String, dynamic>;
+        
+        // 缓存搜索结果
+        lastSearchResponse.value = searchResponse;
+        
+        // 提取并缓存查询和结果详情
+        final searchResults = searchResponse['search_result'] as List?;
+        if (searchResults != null) {
+          lastSearchQueries.clear();
+          lastSearchQueries.add(searchQuery.trim());
+          
+          lastSearchResults.clear();
+          lastSearchResults.addAll(
+            searchResults.cast<Map<String, dynamic>>()
+          );
+          
+          print('🔍 [ZhipuSearchService] 搜索完成:');
+          print('🔍 [ZhipuSearchService] 查询: ${searchQuery.trim()}');
+          print('🔍 [ZhipuSearchService] 结果数量: ${searchResults.length}');
+          print('🔍 [ZhipuSearchService] 缓存的搜索结果数量: ${lastSearchResults.length}');
+        }
+        
+        return searchResponse;
       } else {
         throw Exception('搜索请求失败，状态码: ${response.statusCode}');
-      }    } on DioException catch (e) {
+      }} on DioException catch (e) {
       if (e.response != null) {
         final errorData = e.response!.data;
         if (errorData is Map && errorData.containsKey('error')) {

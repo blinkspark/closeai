@@ -6,6 +6,7 @@ import '../models/session.dart';
 import '../services/message_service.dart';
 import '../services/openai_service_interface.dart';
 import '../services/search_service_interface.dart';
+import '../services/zhipu_search_service.dart';
 import '../core/dependency_injection.dart';
 import '../interfaces/common_interfaces.dart';
 import '../defs.dart';
@@ -22,9 +23,9 @@ class ChatController extends GetxController {
   final isLoading = false.obs;
   final currentSessionId = Rxn<int>();
   final streamingMessage = Rxn<Message>();
-  final isStreaming = false.obs;
-  final searchResultCount = 0.obs;
+  final isStreaming = false.obs;  final searchResultCount = 0.obs;
   final lastSearchQueries = <String>[].obs;
+  final lastSearchResults = <Map<String, dynamic>>[].obs;
   
   // 工具状态的可观察属性
   final isToolsEnabledObs = false.obs;
@@ -259,18 +260,27 @@ class ChatController extends GetxController {
         final message = choice?['message'];        final responseContent = message?['content'] ?? '';
         
         // 检查是否有搜索结果信息
-        final searchResultsInfo = message?['search_results_info'];        final toolCalls = message?['tool_calls'] ?? message?['original_tool_calls'];
+        final searchResultsInfo = message?['search_results_info'];
+        final toolCalls = message?['tool_calls'] ?? message?['original_tool_calls'];
         String finalContent = responseContent;
-          
         if (searchResultsInfo != null) {
+          List<Map<String, dynamic>> results = [];
           // 从搜索结果信息中提取数据
           final queries = searchResultsInfo['queries'] as List<String>? ?? [];
           final totalCount = searchResultsInfo['total_count'] as int? ?? 0;
-          
+          // 主动补充 results 字段
+          if (searchResultsInfo['results'] is List) {
+            results = (searchResultsInfo['results'] as List)
+              .map((e) => Map<String, dynamic>.from(e)).toList();
+          } else if (_searchService is ZhipuSearchService &&
+                     (_searchService as ZhipuSearchService).lastSearchResults.isNotEmpty) {
+            results = (_searchService as ZhipuSearchService).lastSearchResults;
+            searchResultsInfo['results'] = results; // 补充到 info 里
+          }
+          lastSearchResults.assignAll(results);
           if (queries.isNotEmpty) {
             searchResultCount.value = totalCount;
             lastSearchQueries.assignAll(queries);
-            
             final searchInfo = '🔍 已搜索到 $totalCount 个网页\n搜索内容: ${queries.join('、')}';
             finalContent = '$searchInfo\n\n$responseContent';
           }
@@ -337,9 +347,27 @@ class ChatController extends GetxController {
         // 忽略解析错误，继续处理其他调用
       }
     }
-    
-    if (searchQueries.isEmpty) {
+      if (searchQueries.isEmpty) {
       return '';
+    }
+      // 尝试从搜索服务获取缓存的搜索结果详情
+    try {
+      if (_searchService != null && _searchService is ZhipuSearchService) {
+        final zhipuService = _searchService as ZhipuSearchService;
+        print('🔍 [ChatController] 尝试获取搜索结果详情');
+        print('🔍 [ChatController] 搜索服务缓存结果数量: ${zhipuService.lastSearchResults.length}');
+        if (zhipuService.lastSearchResults.isNotEmpty) {
+          lastSearchResults.assignAll(zhipuService.lastSearchResults);
+          print('🔍 [ChatController] 成功获取到 ${zhipuService.lastSearchResults.length} 个搜索结果详情');
+          print('🔍 [ChatController] 第一个结果标题: ${zhipuService.lastSearchResults.first['title']}');
+        } else {
+          print('🔍 [ChatController] 搜索服务中没有缓存的搜索结果');
+        }
+      } else {
+        print('🔍 [ChatController] 搜索服务不可用或类型不匹配');
+      }
+    } catch (e) {
+      print('🔍 [ChatController] 获取搜索结果详情失败: $e');
     }
     
     // 更新搜索状态

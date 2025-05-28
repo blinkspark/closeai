@@ -267,11 +267,15 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
             final Map<String, dynamic> args = jsonDecode(arguments);
             final searchQuery = args['search_query'] as String?;
             final count = args['count'] as int? ?? 5;
-            
-            if (searchQuery != null) {
+              if (searchQuery != null) {
               searchResultsInfo['queries'] = (searchResultsInfo['queries'] as List<String>? ?? [])..add(searchQuery);
               searchResultsInfo['total_count'] = (searchResultsInfo['total_count'] as int? ?? 0) + count;
-            }          } catch (e) {
+              // 新增：把最新的 search_result 也加进去
+              if (_zhipuSearchService.lastSearchResults.isNotEmpty) {
+                searchResultsInfo['results'] = _zhipuSearchService.lastSearchResults;
+              }
+            }
+          } catch (e) {
             // 解析搜索参数失败
           }
         }
