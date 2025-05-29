@@ -7,18 +7,19 @@ class MessageList extends StatelessWidget {
   const MessageList({super.key});
   @override
   Widget build(BuildContext context) {
-    final ChatController chatController = Get.find();
-      return Padding(
+    final ChatController chatController = Get.find();    return Padding(
       padding: const EdgeInsets.all(16),
       child: Obx(() {
         final messages = chatController.messages;
+        final currentStreamingMessage = chatController.streamingMessage.value;
+        final isStreamingActive = chatController.isStreaming.value;
         
         return ListView.builder(
           itemCount: messages.length,
           itemBuilder: (context, idx) {
             final message = messages[idx];
-            final isStreaming = chatController.isStreaming.value &&
-                               chatController.streamingMessage.value?.id == message.id;
+            final isStreaming = isStreamingActive &&
+                               currentStreamingMessage?.id == message.id;
             
             return MessageWidget(
               isUser: message.role == 'user',

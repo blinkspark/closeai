@@ -84,7 +84,6 @@ class SessionControllerNew extends GetxController {
       sendingMessage.value = false;
     }
   }
-
   /// 发送流式消息
   Future<void> sendStreamingMessage(List<Map<String, dynamic>> messages, Session session) async {
     // 创建空的助手消息用于流式更新
@@ -94,6 +93,7 @@ class SessionControllerNew extends GetxController {
     );
     
     String fullContent = '';
+    bool streamingStarted = true;
     
     try {
       // 获取流式响应
@@ -104,14 +104,29 @@ class SessionControllerNew extends GetxController {
       
       // 完成流式消息
       await _chatController.finishStreamingMessage();
+      streamingStarted = false;
       
       // 更新会话时间
       await _sessionService.updateSession(session);
       
     } catch (e) {
       // 如果出错，取消流式消息
-      await _chatController.cancelStreamingMessage();
+      if (streamingStarted && _chatController.isStreaming.value) {
+        await _chatController.cancelStreamingMessage();
+        streamingStarted = false;
+      }
       rethrow;
+    } finally {
+      // 确保流式状态被正确重置
+      if (streamingStarted && _chatController.isStreaming.value) {
+        try {
+          await _chatController.finishStreamingMessage();
+        } catch (e) {
+          // 如果 finishStreamingMessage 失败，强制重置状态
+          _chatController.isStreaming.value = false;
+          _chatController.streamingMessage.value = null;
+        }
+      }
     }
   }
 

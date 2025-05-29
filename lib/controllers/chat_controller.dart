@@ -187,29 +187,58 @@ class ChatController extends GetxController {
     }
     
     return message;
-  }
-
-  /// 更新流式消息内容
+  }  /// 更新流式消息内容
   void updateStreamingMessage(String content) {
     if (streamingMessage.value != null) {
+      // 先更新streamingMessage的内容
       streamingMessage.value!.content = content;
       
-      // 更新UI中的消息
+      // 更新UI中的消息（触发可观察更新）
       final index = messages.indexWhere((m) => m.id == streamingMessage.value!.id);
       if (index != -1) {
-        messages[index] = streamingMessage.value!;
+        // 创建新的消息对象以触发可观察更新
+        final updatedMessage = Message()
+          ..id = messages[index].id
+          ..role = messages[index].role
+          ..content = content
+          ..timestamp = messages[index].timestamp;
+        messages[index] = updatedMessage;
+        
+        // 同时更新 streamingMessage 引用以保持同步
+        streamingMessage.value = updatedMessage;
+      } else {
+        // 如果在messages列表中找不到对应消息，强制刷新
+        messages.refresh();
       }
     }
   }
-
   /// 完成流式消息
   Future<void> finishStreamingMessage() async {
     if (streamingMessage.value != null) {
-      // 保存最终的消息内容到数据库
-      await _messageService.updateMessage(streamingMessage.value!);
-      
-      streamingMessage.value = null;
-      isStreaming.value = false;
+      try {
+        print('DEBUG: 开始完成流式消息，当前isStreaming=${isStreaming.value}');
+        
+        // 保存最终的消息内容到数据库
+        await _messageService.updateMessage(streamingMessage.value!);
+        
+        // 立即重置流式状态
+        streamingMessage.value = null;
+        isStreaming.value = false;
+        
+        print('DEBUG: 流式消息完成，isStreaming已重置为false');
+        
+        // 强制触发UI更新
+        messages.refresh();
+      } catch (e) {
+        print('DEBUG: 保存消息失败，但仍重置状态: $e');
+        // 即使保存失败，也要重置状态
+        streamingMessage.value = null;
+        isStreaming.value = false;
+        messages.refresh();
+        rethrow;
+      }
+    } else {
+      print('DEBUG: finishStreamingMessage被调用但streamingMessage为null');
     }
   }
 
@@ -245,13 +274,14 @@ class ChatController extends GetxController {
   /// 获取特定会话的消息总数
   Future<int> getMessageCountBySessionId(int sessionId) async {
     return await _messageService.getMessageCountBySessionId(sessionId);
-  }
-  /// 发送消息（支持工具调用）
+  }  /// 发送消息（支持工具调用）
   Future<void> sendMessageWithTools({
     required String content,
     required Session session,
   }) async {
     if (content.trim().isEmpty) return;
+    
+    bool streamingStarted = false;
     
     try {
       isLoading.value = true;
@@ -270,7 +300,10 @@ class ChatController extends GetxController {
       await startStreamingMessage(
         role: 'assistant',
         session: session,
-      );      // 使用流式接口（带工具支持）
+      );
+      streamingStarted = true;
+
+      // 使用流式接口（带工具支持）
       String fullContent = '';
       
       await for (final chunk in _openAIService.createChatCompletionStream(
@@ -299,14 +332,17 @@ class ChatController extends GetxController {
           }
         }
       }
-      
-      // 完成流式消息
+        // 完成流式消息
+      print('DEBUG: await for 循环结束，开始完成流式消息');
       await finishStreamingMessage();
+      streamingStarted = false; // 标记流式处理已正常完成
+      print('DEBUG: 流式处理正常完成');
       
     } catch (e) {
       // 如果有流式消息在进行中，取消它
-      if (isStreaming.value) {
+      if (streamingStarted && isStreaming.value) {
         await cancelStreamingMessage();
+        streamingStarted = false;
       }
       
       // 添加错误消息
@@ -314,7 +350,19 @@ class ChatController extends GetxController {
         role: 'assistant',
         content: '抱歉，发生了错误：$e',
         session: session,
-      );    } finally {
+      );
+    } finally {
+      // 确保流式状态被正确重置
+      if (streamingStarted && isStreaming.value) {
+        try {
+          await finishStreamingMessage();
+        } catch (e) {
+          // 如果 finishStreamingMessage 失败，强制重置状态
+          isStreaming.value = false;
+          streamingMessage.value = null;
+        }
+      }
+      
       isLoading.value = false;
     }
   }
