@@ -10,6 +10,7 @@ import '../services/zhipu_search_service.dart';
 import '../core/dependency_injection.dart';
 import '../interfaces/common_interfaces.dart';
 import '../defs.dart';
+import 'app_state_controller.dart';
 
 /// 聊天控制器，负责管理聊天相关的UI状态和业务逻辑
 class ChatController extends GetxController {
@@ -29,8 +30,7 @@ class ChatController extends GetxController {
   
   // 工具状态的可观察属性
   final isToolsEnabledObs = false.obs;
-  final isToolsAvailableObs = false.obs;
-  @override
+  final isToolsAvailableObs = false.obs;  @override
   void onInit() {
     super.onInit();
     _messageService = di.get<MessageService>();
@@ -54,8 +54,32 @@ class ChatController extends GetxController {
       // 系统提示词管理器未注册，跳过
     }
     
-    // 初始化工具状态可观察属性
+    // 延迟初始化工具状态，确保AppStateController配置加载完成
+    _initializeToolStates();
+  }
+  /// 初始化工具状态监听
+  void _initializeToolStates() {
+    // 先尝试立即更新一次
     _updateToolStates();
+    
+    // 监听AppStateController的工具状态变化
+    if (_toolStateManager != null) {
+      // 如果有AppStateController，监听其状态变化
+      try {
+        final appStateController = Get.find<AppStateController>();
+        // 监听isToolsEnabled的变化并同步到本地状态
+        ever(appStateController.isToolsEnabled, (bool enabled) {
+          _updateToolStates();
+        });
+        
+        // 延迟一段时间后再次更新，确保配置加载完成
+        Future.delayed(Duration(milliseconds: 100), () {
+          _updateToolStates();
+        });
+      } catch (e) {
+        // 无法找到AppStateController，忽略
+      }
+    }
   }
     /// 更新工具状态可观察属性
   void _updateToolStates() {
@@ -78,8 +102,7 @@ class ChatController extends GetxController {
   bool get isToolsEnabled => isToolsEnabledObs.value;
   
   /// 工具可用性（向后兼容的getter）
-  bool get isToolsAvailable => isToolsAvailableObs.value;
-  /// 切换工具开关
+  bool get isToolsAvailable => isToolsAvailableObs.value;  /// 切换工具开关
   void toggleTools() {
     _toolStateManager?.setToolsEnabled(!isToolsEnabled);
     
@@ -349,25 +372,16 @@ class ChatController extends GetxController {
     }
       if (searchQueries.isEmpty) {
       return '';
-    }
-      // 尝试从搜索服务获取缓存的搜索结果详情
+    }    // 尝试从搜索服务获取缓存的搜索结果详情
     try {
       if (_searchService != null && _searchService is ZhipuSearchService) {
         final zhipuService = _searchService as ZhipuSearchService;
-        print('🔍 [ChatController] 尝试获取搜索结果详情');
-        print('🔍 [ChatController] 搜索服务缓存结果数量: ${zhipuService.lastSearchResults.length}');
         if (zhipuService.lastSearchResults.isNotEmpty) {
           lastSearchResults.assignAll(zhipuService.lastSearchResults);
-          print('🔍 [ChatController] 成功获取到 ${zhipuService.lastSearchResults.length} 个搜索结果详情');
-          print('🔍 [ChatController] 第一个结果标题: ${zhipuService.lastSearchResults.first['title']}');
-        } else {
-          print('🔍 [ChatController] 搜索服务中没有缓存的搜索结果');
         }
-      } else {
-        print('🔍 [ChatController] 搜索服务不可用或类型不匹配');
       }
     } catch (e) {
-      print('🔍 [ChatController] 获取搜索结果详情失败: $e');
+      // 忽略搜索结果获取错误
     }
     
     // 更新搜索状态

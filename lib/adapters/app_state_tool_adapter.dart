@@ -19,7 +19,6 @@ class AppStateToolAdapter implements ToolStateManager {
 
   @override
   bool get isToolsEnabled => _appStateController.isToolsEnabled.value;
-
   @override
   void setToolsEnabled(bool enabled) {
     _appStateController.setToolsEnabled(enabled);
