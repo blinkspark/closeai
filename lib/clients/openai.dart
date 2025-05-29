@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
+import '../utils/app_logger.dart';
 
 class OpenAI {
   Dio dio = Dio();
@@ -10,16 +11,38 @@ class OpenAI {
   OpenAI({this.apiKey, this.baseUrl = 'https://api.openai.com/v1'}) {
     chat = Chat(openAI: this);
   }
-
   Future<Map<String, dynamic>> listModels() async {
-    Response response = await dio.get(
-      '$baseUrl/models',
-      options: Options(headers: {
-        'Authorization': 'Bearer $apiKey',
-        'Content-Type': 'application/json',
-      }),
-    );
-    return response.data;
+    final stopwatch = Stopwatch()..start();
+    try {
+      AppLogger.api('ListModels', endpoint: '$baseUrl/models');
+      
+      Response response = await dio.get(
+        '$baseUrl/models',
+        options: Options(headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        }),
+      );
+      
+      stopwatch.stop();
+      AppLogger.api(
+        'ListModels',
+        endpoint: '$baseUrl/models',
+        statusCode: response.statusCode,
+        duration: stopwatch.elapsed,
+      );
+      
+      return response.data;
+    } catch (e) {
+      stopwatch.stop();
+      AppLogger.api(
+        'ListModels',
+        endpoint: '$baseUrl/models',
+        duration: stopwatch.elapsed,
+        error: e,
+      );
+      rethrow;
+    }
   }
 }
 
@@ -51,32 +74,59 @@ class Completions {
     double? presencePenalty,
     double? frequencyPenalty,
     bool? logProbs,
-    Map<String, dynamic>? user,
-  }) async {
-    Response response = await openAI.dio.post(
-      '${openAI.baseUrl}/chat/completions',
-      data: {
+    Map<String, dynamic>? user,  }) async {
+    final stopwatch = Stopwatch()..start();
+    final endpoint = '${openAI.baseUrl}/chat/completions';
+    
+    try {
+      AppLogger.api('ChatCompletion', endpoint: endpoint, request: {
         'model': model,
-        'messages': messages,
-        if (tools != null) 'tools': tools,
-        if (toolChoice != null) 'tool_choice': toolChoice,
-        if (maxTokens != null) 'max_tokens': maxTokens,
-        if (temperature != null) 'temperature': temperature,
-        if (topP != null) 'top_p': topP,
-        if (n != null) 'n': n,
-        if (stream != null) 'stream': stream,
-        if (stop != null) 'stop': stop,
-        if (presencePenalty != null) 'presence_penalty': presencePenalty,
-        if (frequencyPenalty != null) 'frequency_penalty': frequencyPenalty,
-        if (logProbs != null) 'logprobs': logProbs,
-        if (user != null) 'user': user,
-      },
-      options: Options(headers: {
-        'Authorization': 'Bearer ${openAI.apiKey}',
-        'Content-Type': 'application/json',
-      }),
-    );
-    return response.data;
+        'messages_count': messages.length,
+        'tools_count': tools?.length ?? 0,
+        'stream': stream,
+      });
+      
+      Response response = await openAI.dio.post(
+        endpoint,
+        data: {
+          'model': model,
+          'messages': messages,
+          if (tools != null) 'tools': tools,
+          if (toolChoice != null) 'tool_choice': toolChoice,
+          if (maxTokens != null) 'max_tokens': maxTokens,
+          if (temperature != null) 'temperature': temperature,
+          if (topP != null) 'top_p': topP,
+          if (n != null) 'n': n,
+          if (stream != null) 'stream': stream,
+          if (stop != null) 'stop': stop,
+          if (presencePenalty != null) 'presence_penalty': presencePenalty,
+          if (frequencyPenalty != null) 'frequency_penalty': frequencyPenalty,
+          if (logProbs != null) 'logprobs': logProbs,
+          if (user != null) 'user': user,
+        },
+        options: Options(headers: {
+          'Authorization': 'Bearer ${openAI.apiKey}',
+          'Content-Type': 'application/json',
+        }),
+      );
+      
+      stopwatch.stop();
+      AppLogger.api('ChatCompletion', 
+        endpoint: endpoint,
+        statusCode: response.statusCode,
+        duration: stopwatch.elapsed,
+      );
+      
+      return response.data;
+    } catch (e) {
+      stopwatch.stop();
+      AppLogger.api('ChatCompletion',
+        endpoint: endpoint,
+        duration: stopwatch.elapsed,
+        error: e,
+      );
+      rethrow;
+    }
   }
 
   /// 创建流式聊天完成请求
@@ -93,23 +143,32 @@ class Completions {
     double? presencePenalty,
     double? frequencyPenalty,
     bool? logProbs,
-    Map<String, dynamic>? user,
-  }) async* {
-    final response = await openAI.dio.post<ResponseBody>(
-      '${openAI.baseUrl}/chat/completions',
-      data: {
+    Map<String, dynamic>? user,  }) async* {
+    final stopwatch = Stopwatch()..start();
+    final endpoint = '${openAI.baseUrl}/chat/completions';
+    
+    try {
+      AppLogger.api('ChatCompletionStream', endpoint: endpoint, request: {
         'model': model,
-        'messages': messages,
+        'messages_count': messages.length,
+        'tools_count': tools?.length ?? 0,
         'stream': true,
-        if (tools != null) 'tools': tools,
-        if (toolChoice != null) 'tool_choice': toolChoice,
-        if (maxTokens != null) 'max_tokens': maxTokens,
-        if (temperature != null) 'temperature': temperature,
-        if (topP != null) 'top_p': topP,
-        if (n != null) 'n': n,
-        if (stop != null) 'stop': stop,
-        if (presencePenalty != null) 'presence_penalty': presencePenalty,
-        if (frequencyPenalty != null) 'frequency_penalty': frequencyPenalty,
+      });
+      
+      final response = await openAI.dio.post<ResponseBody>(
+        endpoint,
+        data: {
+          'model': model,
+          'messages': messages,
+          'stream': true,
+          if (tools != null) 'tools': tools,
+          if (toolChoice != null) 'tool_choice': toolChoice,
+          if (maxTokens != null) 'max_tokens': maxTokens,
+          if (temperature != null) 'temperature': temperature,
+          if (topP != null) 'top_p': topP,
+          if (n != null) 'n': n,
+          if (stop != null) 'stop': stop,
+          if (presencePenalty != null) 'presence_penalty': presencePenalty,        if (frequencyPenalty != null) 'frequency_penalty': frequencyPenalty,
         if (logProbs != null) 'logprobs': logProbs,
         if (user != null) 'user': user,
       },
@@ -137,9 +196,16 @@ class Completions {
         if (line.startsWith('data: ')) {
           final data = line.substring(6).trim();
           if (data == '[DONE]') {
+            stopwatch.stop();
+            AppLogger.api(
+              'ChatCompletionStream',
+              endpoint: endpoint,
+              duration: stopwatch.elapsed,
+            );
             return;
           }
-          if (data.isNotEmpty) {            try {
+          if (data.isNotEmpty) {
+            try {
               final json = jsonDecode(data);
               final delta = json['choices']?[0]?['delta'];
               
@@ -153,9 +219,18 @@ class Completions {
               // 忽略解析错误，继续处理下一行
               continue;
             }
-          }
-        }
+          }        }
       }
+    }
+    } catch (e) {
+      stopwatch.stop();
+      AppLogger.api(
+        'ChatCompletionStream',
+        endpoint: endpoint,
+        duration: stopwatch.elapsed,
+        error: e,
+      );
+      rethrow;
     }
   }
 }

@@ -6,6 +6,7 @@ import '../models/message.dart';
 import '../services/session_service.dart';
 import '../services/message_service.dart';
 import '../services/openai_service_interface.dart';
+import '../utils/app_logger.dart';
 import 'chat_controller.dart';
 import '../core/dependency_injection.dart';
 import '../defs.dart';
@@ -64,19 +65,20 @@ class SessionControllerNew extends GetxController {
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
-        return;
-      }
+        return;      }
       
-      print('🐛 [DEBUG] SessionController发送消息: ${message.content}');
+      AppLogger.business('SessionController', '发送消息', data: {
+        'content_length': message.content.length,
+        'session_id': currentSession.id,
+      });
       
       // 使用ChatController的带工具支持的方法
       await _chatController.sendMessageWithTools(
         content: message.content,
-        session: currentSession,
-      );
+        session: currentSession,      );
       
     } catch (e) {
-      print('🐛 [DEBUG] SessionController发送消息失败: $e');
+      AppLogger.e('SessionController发送消息失败', e);
       Get.snackbar('发送失败', e.toString());
     } finally {
       sendingMessage.value = false;

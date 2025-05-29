@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import '../controllers/provider_controller.dart';
+import '../utils/app_logger.dart';
 import 'search_service_interface.dart';
 
 /// 智谱AI搜索服务
@@ -117,16 +118,16 @@ class ZhipuSearchService extends GetxService implements SearchServiceInterface {
         if (searchResults != null) {
           lastSearchQueries.clear();
           lastSearchQueries.add(searchQuery.trim());
-          
-          lastSearchResults.clear();
+            lastSearchResults.clear();
           lastSearchResults.addAll(
             searchResults.cast<Map<String, dynamic>>()
           );
           
-          print('🔍 [ZhipuSearchService] 搜索完成:');
-          print('🔍 [ZhipuSearchService] 查询: ${searchQuery.trim()}');
-          print('🔍 [ZhipuSearchService] 结果数量: ${searchResults.length}');
-          print('🔍 [ZhipuSearchService] 缓存的搜索结果数量: ${lastSearchResults.length}');
+          AppLogger.business('ZhipuSearchService', '搜索完成', data: {
+            'query': searchQuery.trim(),
+            'results_count': searchResults.length,
+            'cached_results_count': lastSearchResults.length,
+          });
         }
         
         return searchResponse;

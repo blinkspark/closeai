@@ -13,6 +13,7 @@ import 'models/session.dart';
 import 'models/message.dart';
 import 'models/system_prompt.dart';
 import 'pages/home_page.dart';
+import 'utils/app_logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,12 +36,10 @@ void main() async {
     await DependencyConfig.initialize();
     
     // 初始化默认数据
-    await _initializeDefaultData();
-    
+    await _initializeDefaultData();    
     runApp(MyApp());
   } catch (e, stackTrace) {
-    print('应用初始化失败: $e');
-    print('堆栈跟踪: $stackTrace');
+    AppLogger.f('应用初始化失败', e, stackTrace);
     
     // 显示错误页面
     runApp(MaterialApp(
@@ -69,9 +68,9 @@ Future<void> _initializeDefaultData() async {
     final providerController = Get.find<ProviderController>();
     await providerController.initializeDefaultProviders();    // 初始化默认系统提示词（SystemPromptController会在初始化时自动加载）
     
-    print('默认数据初始化完成');
+    AppLogger.i('默认数据初始化完成');
   } catch (e) {
-    print('默认数据初始化失败: $e');
+    AppLogger.e('默认数据初始化失败', e);
   }
 }
 

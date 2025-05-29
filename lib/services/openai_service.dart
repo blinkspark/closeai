@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../clients/openai.dart';
 import '../controllers/model_controller.dart';
 import '../models/function_call.dart';
+import '../utils/app_logger.dart';
 import 'zhipu_search_service.dart';
 import 'tool_registry.dart';
 import 'openai_service_interface.dart';
@@ -256,10 +257,9 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
           yield data;
         }
       }
-      
-      // 4. 如果有工具调用，处理工具调用并重新请求
+        // 4. 如果有工具调用，处理工具调用并重新请求
       if (hasToolCalls) {
-        print('Debug: 检测到工具调用，开始处理...');
+        AppLogger.d('检测到工具调用，开始处理...');
         
         // 解析工具调用响应
         Map<String, dynamic> toolResponse;
@@ -273,7 +273,7 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
         final newMessages = await _buildMessagesWithToolResults(messages, toolResponse);
         
         // 重新发起流式请求获取AI的最终回复
-        print('Debug: 工具调用完成，重新请求AI回复...');
+        AppLogger.d('工具调用完成，重新请求AI回复...');
         final finalStream = currentClient!.chat.completions.createStream(
           model: currentModelId!,
           messages: newMessages,
