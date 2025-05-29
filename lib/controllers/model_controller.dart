@@ -4,6 +4,7 @@ import 'package:isar/isar.dart';
 import '../models/model.dart';
 import '../models/provider.dart';
 import '../services/openai_service.dart';
+import 'app_state_controller.dart';
 
 class ModelController extends GetxController {
   @override
@@ -13,6 +14,7 @@ class ModelController extends GetxController {
   }
 
   final Isar isar = Get.find();
+  final AppStateController appStateController = Get.find();
 
   final models = <Rx<Model>>[].obs;
   final selectedModel = Rx<Model?>(null);
@@ -29,7 +31,8 @@ class ModelController extends GetxController {
     final models = await isar.collection<Model>().where().findAll();
     
     // 加载每个模型的关联Provider
-    for (final model in models) {      try {
+    for (final model in models) {
+      try {
         await model.provider.load();
         // 如果provider为null，尝试重新关联
         if (model.provider.value == null) {
@@ -42,9 +45,30 @@ class ModelController extends GetxController {
     
     this.models.addAll(models.map((e) => e.obs));
     
-    // 设置默认选中的模型
+    // 恢复之前选中的模型
+    await _restoreSelectedModel();
+  }
+  
+  /// 恢复之前选中的模型
+  Future<void> _restoreSelectedModel() async {
+    final savedModelId = appStateController.selectedModelId.value;
+    
+    if (savedModelId != null && models.isNotEmpty) {
+      // 尝试找到保存的模型
+      final savedModel = models
+          .map((e) => e.value)
+          .where((model) => model.modelId == savedModelId)
+          .firstOrNull;
+      
+      if (savedModel != null) {
+        selectedModel.value = savedModel;
+        return;
+      }    }
+      // 如果没有保存的模型或找不到保存的模型，设置默认选中的模型
     if (models.isNotEmpty && selectedModel.value == null) {
-      selectedModel.value = models.first;
+      selectedModel.value = models.first.value;
+      // 保存默认选择
+      appStateController.setSelectedModelId(selectedModel.value?.modelId);
     }
   }
   
@@ -72,7 +96,8 @@ class ModelController extends GetxController {
         await isar.writeTxn(() async {
           model.provider.value = matchedProvider;
           await isar.collection<Model>().put(model);
-          await model.provider.save();        });
+          await model.provider.save();
+        });
       }
     } catch (e) {
       // 重新分配供应商失败，保持原状
@@ -84,10 +109,11 @@ class ModelController extends GetxController {
       await isar.collection<Model>().delete(models[index].value.id);
       models.removeAt(index);
     });
-  }
-
-  Future<void> selectModel(Model model) async {
+  }  Future<void> selectModel(Model model) async {
     selectedModel.value = model;
+    
+    // 保存选中的模型到持久化存储
+    appStateController.setSelectedModelId(model.modelId);
     
     // 刷新OpenAI服务配置
     if (Get.isRegistered<OpenAIService>()) {
