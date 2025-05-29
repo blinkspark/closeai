@@ -373,8 +373,7 @@ class SystemPromptSettingPage extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text('取消'),
-          ),
-          ElevatedButton(
+          ),          ElevatedButton(
             onPressed: () async {
               // 清空所有系统提示词
               final systemPromptService = Get.find<SystemPromptService>();
@@ -392,7 +391,10 @@ class SystemPromptSettingPage extends StatelessWidget {
               // 重新加载控制器数据
               await controller.loadSystemPrompts();
               
-              Navigator.of(context).pop();
+              // 检查 widget 是否仍然挂载
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
               Get.snackbar('成功', '系统提示词已重置为默认设置');
             },
             style: ElevatedButton.styleFrom(

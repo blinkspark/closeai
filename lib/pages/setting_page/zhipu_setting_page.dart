@@ -102,11 +102,10 @@ class _ZhipuSettingPageState extends State<ZhipuSettingPage> {
             _buildFeatureItem('多引擎支持：整合多个主流搜索引擎'),
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+              padding: const EdgeInsets.all(12),              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -264,9 +263,8 @@ class _ZhipuSettingPageState extends State<ZhipuSettingPage> {
   }
 
   Widget _buildTestResultCard() {
-    final isSuccess = _testResult!.contains('测试成功');
-    return Card(
-      color: isSuccess ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+    final isSuccess = _testResult!.contains('测试成功');    return Card(
+      color: isSuccess ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

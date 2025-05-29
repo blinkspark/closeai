@@ -597,8 +597,8 @@ class ChatPanel extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),              decoration: BoxDecoration(
                 color: chatController.isToolsEnabledObs.value
-                  ? Colors.blue.withOpacity(0.1)
-                  : Colors.grey.withOpacity(0.1),
+                  ? Colors.blue.withValues(alpha: 0.1)
+                  : Colors.grey.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: chatController.isToolsEnabledObs.value
@@ -666,11 +666,10 @@ class ChatPanel extends StatelessWidget {
                   InkWell(
                     onTap: chatController.toggleTools,
                     borderRadius: BorderRadius.circular(16),                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
+                      padding: const EdgeInsets.all(6),                      decoration: BoxDecoration(
                         color: chatController.isToolsEnabledObs.value
-                          ? Colors.blue.withOpacity(0.1)
-                          : Colors.grey.withOpacity(0.1),
+                          ? Colors.blue.withValues(alpha: 0.1)
+                          : Colors.grey.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: chatController.isToolsEnabledObs.value
@@ -699,11 +698,10 @@ class ChatPanel extends StatelessWidget {
           Obx(() {
             if (!chatController.isToolsAvailableObs.value) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -826,9 +824,8 @@ class ChatPanel extends StatelessWidget {
                               padding: EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                                 ),
                               ),
                               child: Column(
@@ -906,9 +903,8 @@ class ChatPanel extends StatelessWidget {
                                       padding: EdgeInsets.all(8),
                                       decoration: BoxDecoration(
                                         color: Theme.of(context).colorScheme.surface,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),                                        border: Border.all(
+                                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
                                         ),
                                       ),
                                       child: Text(
