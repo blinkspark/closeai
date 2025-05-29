@@ -16,8 +16,21 @@ import 'setting_page/config_status_widget.dart';
 class SettingPage extends GetResponsiveView<AppStateController> {
   SettingPage({super.key});
 
+  final Rx<Widget> _selectedSettingPage =
+      Rx<Widget>(const Center(child: Text('设置内容')));
+
   @override
   Widget builder() {
+    // Initialize with the first AI setting page if on desktop and no page is selected yet,
+    // or simply the default text.
+    // For a better UX, ProviderSettingPage could be shown by default on desktop.
+    if (screen.isDesktop && _selectedSettingPage.value is Center) {
+       // You could set a default page here if desired, e.g.:
+       // _selectedSettingPage.value = ProviderSettingPage();
+       // For now, it will keep "设置内容" or what was last set.
+    }
+
+
     return Row(
       children: [
         Container(
@@ -43,25 +56,45 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                   SettingSectionItem(
                     title: '供应商管理',
                     onPressed: () {
-                      Get.to(() => ProviderSettingPage());
+                      final page = ProviderSettingPage();
+                      if (screen.isDesktop) {
+                        _selectedSettingPage.value = page;
+                      } else {
+                        Get.to(() => page);
+                      }
                     },
                   ),
                   SettingSectionItem(
                     title: '模型管理',
                     onPressed: () {
-                      Get.to(() => ModelSettingPage());
+                      final page = ModelSettingPage();
+                      if (screen.isDesktop) {
+                        _selectedSettingPage.value = page;
+                      } else {
+                        Get.to(() => page);
+                      }
                     },
                   ),
                   SettingSectionItem(
                     title: '系统提示词',
                     onPressed: () {
-                      Get.to(() => SystemPromptSettingPage());
+                      final page = SystemPromptSettingPage();
+                      if (screen.isDesktop) {
+                        _selectedSettingPage.value = page;
+                      } else {
+                        Get.to(() => page);
+                      }
                     },
                   ),
                   SettingSectionItem(
                     title: '智谱AI配置',
                     onPressed: () {
-                      Get.to(() => ZhipuSettingPage());
+                      final page = ZhipuSettingPage();
+                      if (screen.isDesktop) {
+                        _selectedSettingPage.value = page;
+                      } else {
+                        Get.to(() => page);
+                      }
                     },
                   ),
                 ],
@@ -124,7 +157,7 @@ class SettingPage extends GetResponsiveView<AppStateController> {
         Expanded(
           child: Container(
             padding: EdgeInsets.all(16),
-            child: Center(child: Text('设置内容')),
+            child: Obx(() => _selectedSettingPage.value),
           ),
         ),
       ],
