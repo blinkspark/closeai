@@ -5,23 +5,21 @@ import '../../../controllers/chat_controller.dart';
 
 class MessageList extends StatelessWidget {
   const MessageList({super.key});
-
   @override
   Widget build(BuildContext context) {
     final ChatController chatController = Get.find();
-    return Padding(
+      return Padding(
       padding: const EdgeInsets.all(16),
       child: Obx(() {
         final messages = chatController.messages;
-        if (chatController.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        
         return ListView.builder(
           itemCount: messages.length,
           itemBuilder: (context, idx) {
             final message = messages[idx];
             final isStreaming = chatController.isStreaming.value &&
                                chatController.streamingMessage.value?.id == message.id;
+            
             return MessageWidget(
               isUser: message.role == 'user',
               message: message.content,
@@ -43,9 +41,7 @@ class MessageWidget extends StatelessWidget {
     required this.message,
     this.isUser = false,
     this.isStreaming = false,
-  });
-
-  @override
+  });  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),

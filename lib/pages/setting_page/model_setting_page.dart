@@ -54,7 +54,7 @@ class ModelSettingPage extends GetView<ModelController> {
                     ? '供应商: ${model.provider.value!.name}'
                     : '供应商: 未设置'
                 ),
-                leading: Radio<Model>(
+                leading: Obx(() => Radio<Model>(
                   value: model,
                   groupValue: controller.selectedModel.value,
                   onChanged: (value) {
@@ -62,7 +62,7 @@ class ModelSettingPage extends GetView<ModelController> {
                       controller.selectModel(value);
                     }
                   },
-                ),
+                )),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

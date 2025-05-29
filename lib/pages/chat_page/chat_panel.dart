@@ -8,6 +8,8 @@ import 'package:get/get.dart';
 import '../../controllers/session_controller.dart';
 import '../../controllers/model_controller.dart';
 import '../../controllers/system_prompt_controller.dart';
+import '../../controllers/chat_controller.dart';
+import '../setting_page/zhipu_setting_page.dart';
 
 class ChatPanel extends StatelessWidget {
   const ChatPanel({super.key});
@@ -153,10 +155,16 @@ class ChatPanel extends StatelessWidget {
                 ),
                 Padding(
                   padding: EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  child: Column(
                     children: [
-                      Expanded(
+                      // 工具开关行
+                      _buildToolsToggleRow(),
+                      SizedBox(height: 8),
+                      // 输入框行
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
                         child: CallbackShortcuts(
                           bindings: {
                             const SingleActivator(
@@ -214,6 +222,8 @@ class ChatPanel extends StatelessWidget {
                                 )
                                 : Icon(Icons.send),
                         tooltip: isSending ? '发送中...' : '发送',
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -375,15 +385,14 @@ class ChatPanel extends StatelessWidget {
                               '当前预设: ${prompt.name}',
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
-                            Spacer(),
-                            if (prompt.enableVariables)
+                            Spacer(),                            if (prompt.enableVariables)
                               Chip(
                                 label: Text(
                                   '支持变量',
                                   style: TextStyle(fontSize: 10),
                                 ),
                                 backgroundColor: Colors.green.withAlpha(
-                                  (255 * 0.2) as int,
+                                  (255 * 0.2).toInt(),
                                 ),
                               ),
                           ],
@@ -545,7 +554,6 @@ class ChatPanel extends StatelessWidget {
           ),
     );
   }
-
   Future<void> _sendMessage(
     SessionController sessionController,
     TextEditingController inputController,
@@ -563,6 +571,374 @@ class ChatPanel extends StatelessWidget {
       Message()
         ..content = content
         ..role = MessageRole.user,
+    );
+  }
+
+  /// 构建工具开关行
+  Widget _buildToolsToggleRow() {
+    final chatController = Get.find<ChatController>();
+    
+    return Builder(
+      builder: (context) {
+        return Obx(() {
+          return Row(
+            children: [
+              // 工具开关按钮
+              InkWell(
+                onTap: () {
+                  // 如果有搜索结果，显示搜索详情；否则切换工具开关
+                  if (chatController.searchResultCount.value > 0) {
+                    _showSearchDetailsDialog(context, chatController);
+                  } else {
+                    chatController.toggleTools();
+                  }
+                },
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),              decoration: BoxDecoration(
+                color: chatController.isToolsEnabledObs.value
+                  ? Colors.blue.withOpacity(0.1)
+                  : Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: chatController.isToolsEnabledObs.value
+                    ? Colors.blue
+                    : Colors.grey,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.search,
+                    size: 16,
+                    color: chatController.isToolsEnabledObs.value
+                      ? Colors.blue
+                      : Colors.grey,
+                  ),
+                  const SizedBox(width: 4),                  Obx(() {
+                    final hasSearchResults = chatController.searchResultCount.value > 0;
+                    final searchText = chatController.isToolsEnabledObs.value
+                      ? (hasSearchResults
+                          ? '已搜索到 ${chatController.searchResultCount.value} 个网页'
+                          : '联网搜索')
+                      : '联网搜索';
+                    
+                    return Text(
+                      searchText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: chatController.isToolsEnabledObs.value
+                          ? Colors.blue
+                          : Colors.grey,
+                      ),
+                    );
+                  }),
+                  Obx(() {
+                    if (chatController.isToolsEnabledObs.value) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(width: 4),
+                          Icon(
+                            chatController.searchResultCount.value > 0
+                              ? Icons.info_outline
+                              : Icons.keyboard_arrow_right,
+                            size: 14,
+                            color: Colors.blue,
+                          ),
+                        ],
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
+                ],
+              ),
+            ),
+          ),
+          // 单独的工具开关按钮（当有搜索结果时显示）
+          Obx(() {
+            if (chatController.searchResultCount.value > 0) {
+              return Row(
+                children: [
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: chatController.toggleTools,
+                    borderRadius: BorderRadius.circular(16),                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: chatController.isToolsEnabledObs.value
+                          ? Colors.blue.withOpacity(0.1)
+                          : Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: chatController.isToolsEnabledObs.value
+                            ? Colors.blue
+                            : Colors.grey,
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        chatController.isToolsEnabledObs.value
+                          ? Icons.toggle_on
+                          : Icons.toggle_off,
+                        size: 16,
+                        color: chatController.isToolsEnabledObs.value
+                          ? Colors.blue
+                          : Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+          const SizedBox(width: 8),          // 工具状态提示
+          Obx(() {
+            if (!chatController.isToolsAvailableObs.value) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.warning, size: 12, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    Text(
+                      '未配置',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+          const Spacer(),
+          // 配置按钮
+          IconButton(
+            onPressed: () {
+              Get.to(() => const ZhipuSettingPage());
+            },
+            icon: const Icon(Icons.settings, size: 16),
+            tooltip: '智谱AI配置',
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: const EdgeInsets.all(4),
+          ),
+        ],
+          );
+        });
+      },
+    );
+  }
+  /// 显示搜索详情对话框
+  void _showSearchDetailsDialog(BuildContext context, ChatController chatController) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.search, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('搜索详情'),
+          ],
+        ),
+        content: SizedBox(
+          width: 600,
+          height: 500,
+          child: DefaultTabController(
+            length: 2,
+            child: Column(
+              children: [
+                Text(
+                  '搜索结果数量: ${chatController.searchResultCount.value} 个网页',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                SizedBox(height: 16),
+                TabBar(
+                  tabs: [
+                    Tab(
+                      icon: Icon(Icons.search),
+                      text: '搜索查询',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.list),
+                      text: '搜索结果',
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      // 搜索查询标签页
+                      Obx(() {
+                        if (chatController.lastSearchQueries.isEmpty) {
+                          return Center(child: Text('暂无搜索记录'));
+                        }
+                        return ListView.builder(
+                          itemCount: chatController.lastSearchQueries.length,
+                          itemBuilder: (context, index) {
+                            final query = chatController.lastSearchQueries[index];
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 8),
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.search, size: 16, color: Colors.blue),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      query,
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                      // 搜索结果标签页
+                      Obx(() {
+                        if (chatController.lastSearchResults.isEmpty) {
+                          return Center(child: Text('暂无搜索结果'));
+                        }
+                        return ListView.builder(
+                          itemCount: chatController.lastSearchResults.length,
+                          itemBuilder: (context, index) {
+                            final result = chatController.lastSearchResults[index];
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 12),
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 标题
+                                  Row(
+                                    children: [
+                                      Icon(Icons.article, size: 16, color: Colors.blue),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '${index + 1}. ${result['title'] ?? '无标题'}',
+                                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
+                                  // 来源和时间
+                                  if (result['media'] != null || result['publish_date'] != null)
+                                    Row(
+                                      children: [
+                                        if (result['media'] != null) ...[
+                                          Icon(Icons.source, size: 14, color: Colors.grey[600]),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            '来源: ${result['media']}',
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                        if (result['media'] != null && result['publish_date'] != null)
+                                          Text(' • ', style: TextStyle(color: Colors.grey[600])),
+                                        if (result['publish_date'] != null) ...[
+                                          Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            result['publish_date'],
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  // 链接
+                                  if (result['link'] != null) ...[
+                                    SizedBox(height: 8),
+                                    InkWell(
+                                      onTap: () {
+                                        // 可以在这里添加打开链接的功能
+                                        Get.snackbar('链接', result['link']);
+                                      },
+                                      child: Text(
+                                        result['link'],
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: Colors.blue,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                  // 内容摘要
+                                  if (result['content'] != null && result['content'].toString().isNotEmpty) ...[
+                                    SizedBox(height: 8),
+                                    Container(
+                                      padding: EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surface,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        result['content'].toString().length > 200
+                                            ? '${result['content'].toString().substring(0, 200)}...'
+                                            : result['content'].toString(),
+                                        style: Theme.of(context).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('关闭'),
+          ),
+        ],
+      ),
     );
   }
 }

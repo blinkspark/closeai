@@ -52,9 +52,7 @@ class SessionPanel extends StatelessWidget {
 class SessionItem extends StatelessWidget {
   final int index;
   final String title;
-
   const SessionItem({super.key, required this.index, required this.title});
-
   @override
   Widget build(BuildContext context) {
     final SessionController sessionController = Get.find();

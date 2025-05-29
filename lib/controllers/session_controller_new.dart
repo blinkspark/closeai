@@ -11,7 +11,7 @@ import '../core/dependency_injection.dart';
 import '../defs.dart';
 
 /// 会话控制器（解耦版本），负责管理会话相关的UI状态和业务逻辑
-class SessionController extends GetxController {
+class SessionControllerNew extends GetxController {
   late final SessionService _sessionService;
   late final OpenAIServiceInterface _openAIService;
   late final ChatController _chatController;
@@ -63,15 +63,20 @@ class SessionController extends GetxController {
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
-        );        return;
+        );
+        return;
       }
+      
+      print('🐛 [DEBUG] SessionController发送消息: ${message.content}');
       
       // 使用ChatController的带工具支持的方法
       await _chatController.sendMessageWithTools(
         content: message.content,
         session: currentSession,
       );
-        } catch (e) {
+      
+    } catch (e) {
+      print('🐛 [DEBUG] SessionController发送消息失败: $e');
       Get.snackbar('发送失败', e.toString());
     } finally {
       sendingMessage.value = false;
@@ -145,7 +150,8 @@ class SessionController extends GetxController {
     if (sessions.isEmpty) {
       index.value = 0;
       _chatController.clearMessages();
-    } else {      if (idx <= index.value) {
+    } else {
+      if (idx <= index.value) {
         index.value = index.value > 0 ? index.value - 1 : 0;
       }
       setIndex(index.value);

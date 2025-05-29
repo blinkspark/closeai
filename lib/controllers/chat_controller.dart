@@ -1,24 +1,121 @@
 import 'package:get/get.dart';
+import 'dart:convert';
 
 import '../models/message.dart';
 import '../models/session.dart';
 import '../services/message_service.dart';
+import '../services/openai_service_interface.dart';
+import '../services/search_service_interface.dart';
+import '../services/zhipu_search_service.dart';
+import '../core/dependency_injection.dart';
+import '../interfaces/common_interfaces.dart';
+import '../defs.dart';
+import 'app_state_controller.dart';
 
 /// 聊天控制器，负责管理聊天相关的UI状态和业务逻辑
 class ChatController extends GetxController {
   late final MessageService _messageService;
-  
-  // UI状态
+  late final OpenAIServiceInterface _openAIService;
+  SearchServiceInterface? _searchService;
+  ToolStateManager? _toolStateManager;
+  SystemPromptManager? _systemPromptManager;
+    // UI状态
   final messages = <Message>[].obs;
   final isLoading = false.obs;
   final currentSessionId = Rxn<int>();
   final streamingMessage = Rxn<Message>();
-  final isStreaming = false.obs;
-
-  @override
+  final isStreaming = false.obs;  final searchResultCount = 0.obs;
+  final lastSearchQueries = <String>[].obs;
+  final lastSearchResults = <Map<String, dynamic>>[].obs;
+  
+  // 工具状态的可观察属性
+  final isToolsEnabledObs = false.obs;
+  final isToolsAvailableObs = false.obs;  @override
   void onInit() {
     super.onInit();
-    _messageService = Get.find<MessageService>();
+    _messageService = di.get<MessageService>();
+    _openAIService = di.get<OpenAIServiceInterface>();
+      // 可选依赖，如果不存在不会导致错误
+    try {
+      _searchService = di.get<SearchServiceInterface>();
+    } catch (e) {
+      // 搜索服务未注册，跳过
+    }
+    
+    try {
+      _toolStateManager = di.get<ToolStateManager>();
+    } catch (e) {
+      // 工具状态管理器未注册，跳过
+    }
+    
+    try {
+      _systemPromptManager = di.get<SystemPromptManager>();
+    } catch (e) {
+      // 系统提示词管理器未注册，跳过
+    }
+    
+    // 延迟初始化工具状态，确保AppStateController配置加载完成
+    _initializeToolStates();
+  }
+  /// 初始化工具状态监听
+  void _initializeToolStates() {
+    // 先尝试立即更新一次
+    _updateToolStates();
+    
+    // 监听AppStateController的工具状态变化
+    if (_toolStateManager != null) {
+      // 如果有AppStateController，监听其状态变化
+      try {
+        final appStateController = Get.find<AppStateController>();
+        // 监听isToolsEnabled的变化并同步到本地状态
+        ever(appStateController.isToolsEnabled, (bool enabled) {
+          _updateToolStates();
+        });
+        
+        // 延迟一段时间后再次更新，确保配置加载完成
+        Future.delayed(Duration(milliseconds: 100), () {
+          _updateToolStates();
+        });
+      } catch (e) {
+        // 无法找到AppStateController，忽略
+      }
+    }
+  }
+    /// 更新工具状态可观察属性
+  void _updateToolStates() {
+    isToolsEnabledObs.value = _toolStateManager?.isToolsEnabled ?? false;
+    isToolsAvailableObs.value = _computeToolsAvailable();
+  }
+  
+  /// 计算工具可用性
+  bool _computeToolsAvailable() {
+    try {
+      if (_searchService == null) return false;
+      // 检查搜索服务是否配置正确
+      return true; // 简化实现，实际可以检查更详细的配置
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 工具开关状态（向后兼容的getter）
+  bool get isToolsEnabled => isToolsEnabledObs.value;
+  
+  /// 工具可用性（向后兼容的getter）
+  bool get isToolsAvailable => isToolsAvailableObs.value;  /// 切换工具开关
+  void toggleTools() {
+    _toolStateManager?.setToolsEnabled(!isToolsEnabled);
+    
+    // 更新可观察属性
+    _updateToolStates();
+  }
+  
+  /// 获取工具状态描述
+  String get toolsStatusDescription {
+    if (!isToolsAvailable) {
+      return '工具未配置';
+    }
+    return isToolsEnabled ? '工具已启用' : '工具已禁用';
   }
 
   /// 加载指定会话的消息
@@ -137,6 +234,8 @@ class ChatController extends GetxController {
     currentSessionId.value = null;
     streamingMessage.value = null;
     isStreaming.value = false;
+    searchResultCount.value = 0;
+    lastSearchQueries.clear();
   }
 
   /// 获取消息总数
@@ -147,5 +246,174 @@ class ChatController extends GetxController {
   /// 获取特定会话的消息总数
   Future<int> getMessageCountBySessionId(int sessionId) async {
     return await _messageService.getMessageCountBySessionId(sessionId);
+  }
+
+  /// 发送消息（支持工具调用）
+  Future<void> sendMessageWithTools({
+    required String content,
+    required Session session,
+  }) async {
+    if (content.trim().isEmpty) return;
+    
+    try {
+      isLoading.value = true;
+        // 添加用户消息
+      await addMessage(
+        role: 'user',
+        content: content,
+        session: session,
+      );
+      
+      // 构建消息历史
+      final messageHistory = _buildMessageHistory();
+      
+      // 开始流式助手消息
+      await startStreamingMessage(
+        role: 'assistant',
+        session: session,
+      );      // 调用OpenAI API（带工具支持）
+      final response = await _openAIService.createChatCompletionWithTools(
+        messages: messageHistory,
+        enableTools: isToolsEnabled,
+        temperature: 0.7,
+        stream: false,      );
+      
+      if (response != null) {
+        final choice = response['choices']?[0];
+        final message = choice?['message'];        final responseContent = message?['content'] ?? '';
+        
+        // 检查是否有搜索结果信息
+        final searchResultsInfo = message?['search_results_info'];
+        final toolCalls = message?['tool_calls'] ?? message?['original_tool_calls'];
+        String finalContent = responseContent;
+        if (searchResultsInfo != null) {
+          List<Map<String, dynamic>> results = [];
+          // 从搜索结果信息中提取数据
+          final queries = searchResultsInfo['queries'] as List<String>? ?? [];
+          final totalCount = searchResultsInfo['total_count'] as int? ?? 0;
+          // 主动补充 results 字段
+          if (searchResultsInfo['results'] is List) {
+            results = (searchResultsInfo['results'] as List)
+              .map((e) => Map<String, dynamic>.from(e)).toList();
+          } else if (_searchService is ZhipuSearchService &&
+                     (_searchService as ZhipuSearchService).lastSearchResults.isNotEmpty) {
+            results = (_searchService as ZhipuSearchService).lastSearchResults;
+            searchResultsInfo['results'] = results; // 补充到 info 里
+          }
+          lastSearchResults.assignAll(results);
+          if (queries.isNotEmpty) {
+            searchResultCount.value = totalCount;
+            lastSearchQueries.assignAll(queries);
+            final searchInfo = '🔍 已搜索到 $totalCount 个网页\n搜索内容: ${queries.join('、')}';
+            finalContent = '$searchInfo\n\n$responseContent';
+          }
+        } else if (toolCalls != null && toolCalls is List && toolCalls.isNotEmpty) {
+          // 备用方案：从工具调用中提取信息
+          final searchInfo = _extractSearchInfo(toolCalls);
+          if (searchInfo.isNotEmpty) {
+            finalContent = '$searchInfo\n\n$responseContent';
+          }
+        }
+        
+        // 更新助手消息内容
+        updateStreamingMessage(finalContent);
+        await finishStreamingMessage();
+      }
+        } catch (e) {
+      // 如果有流式消息在进行中，取消它
+      if (isStreaming.value) {
+        await cancelStreamingMessage();
+      }
+      
+      // 添加错误消息
+      await addMessage(
+        role: 'assistant',
+        content: '抱歉，发生了错误：$e',
+        session: session,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+      /// 提取搜索信息
+  String _extractSearchInfo(List toolCalls) {
+    final searchCalls = toolCalls.where((call) =>
+      call['function']?['name'] == 'zhipu_web_search').toList();
+    
+    if (searchCalls.isEmpty) {
+      return '';
+    }
+    
+    final searchQueries = <String>[];
+    int totalResults = 0;
+    
+    for (final call in searchCalls) {
+      try {
+        final arguments = call['function']['arguments'];
+        
+        if (arguments is String) {
+          final Map<String, dynamic> args =
+            arguments.startsWith('{') ?
+              Map<String, dynamic>.from(
+                jsonDecode(arguments)
+              ) : {'search_query': arguments};
+          
+          final query = args['search_query'] as String?;
+          final count = args['count'] as int? ?? 5;
+          
+          if (query != null && query.isNotEmpty) {
+            searchQueries.add(query);
+            totalResults += count;
+          }
+        }
+      } catch (e) {
+        // 忽略解析错误，继续处理其他调用
+      }
+    }
+      if (searchQueries.isEmpty) {
+      return '';
+    }    // 尝试从搜索服务获取缓存的搜索结果详情
+    try {
+      if (_searchService != null && _searchService is ZhipuSearchService) {
+        final zhipuService = _searchService as ZhipuSearchService;
+        if (zhipuService.lastSearchResults.isNotEmpty) {
+          lastSearchResults.assignAll(zhipuService.lastSearchResults);
+        }
+      }
+    } catch (e) {
+      // 忽略搜索结果获取错误
+    }
+    
+    // 更新搜索状态
+    searchResultCount.value = totalResults;
+    lastSearchQueries.assignAll(searchQueries);
+    
+    return '🔍 已搜索到 $totalResults 个网页\n搜索内容: ${searchQueries.join('、')}';
+  }
+    
+  /// 构建消息历史
+  List<Map<String, dynamic>> _buildMessageHistory() {
+    final messageHistory = <Map<String, dynamic>>[];
+      // 添加系统提示词作为第一条消息
+    try {
+      final systemPrompt = _systemPromptManager?.getCurrentPromptContent() ?? '';
+      
+      if (systemPrompt.isNotEmpty) {
+        messageHistory.add({
+          'role': MessageRole.system,
+          'content': systemPrompt,
+        });
+      }
+    } catch (e) {
+      // 忽略系统提示词获取错误
+    }
+    
+    // 添加对话历史
+    messageHistory.addAll(messages.map((message) => {
+      'role': message.role,
+      'content': message.content,
+    }).toList());
+    
+    return messageHistory;
   }
 }

@@ -10,6 +10,7 @@ import 'setting_page/setting_section.dart';
 import 'setting_page/provider_setting_page.dart';
 import 'setting_page/model_setting_page.dart';
 import 'setting_page/system_prompt_setting_page.dart';
+import 'setting_page/zhipu_setting_page.dart';
 import 'setting_page/config_status_widget.dart';
 
 class SettingPage extends GetResponsiveView<AppStateController> {
@@ -51,6 +52,12 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                     title: '系统提示词',
                     onPressed: () {
                       Get.to(() => SystemPromptSettingPage());
+                    },
+                  ),
+                  SettingSectionItem(
+                    title: '智谱AI配置',
+                    onPressed: () {
+                      Get.to(() => ZhipuSettingPage());
                     },
                   ),
                 ],

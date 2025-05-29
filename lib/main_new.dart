@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import 'config/dependency_config.dart';
 import 'controllers/app_state_controller.dart';
 import 'controllers/provider_controller.dart';
-import 'controllers/system_prompt_controller.dart';
 import 'models/model.dart';
 import 'models/provider.dart';
 import 'models/session.dart';
@@ -38,8 +37,10 @@ void main() async {
     // 初始化默认数据
     await _initializeDefaultData();
     
-    runApp(const MainApp());  } catch (e) {
-    // 应用初始化失败
+    runApp(MyApp());
+  } catch (e, stackTrace) {
+    print('应用初始化失败: $e');
+    print('堆栈跟踪: $stackTrace');
     
     // 显示错误页面
     runApp(MaterialApp(
@@ -63,45 +64,46 @@ void main() async {
 
 /// 初始化默认数据
 Future<void> _initializeDefaultData() async {
-  try {    // 初始化默认供应商
+  try {
+    // 初始化默认供应商
     final providerController = Get.find<ProviderController>();
-    await providerController.initializeDefaultProviders();
+    await providerController.initializeDefaultProviders();    // 初始化默认系统提示词（SystemPromptController会在初始化时自动加载）
     
-    // 初始化默认系统提示词
-    final systemPromptController = Get.find<SystemPromptController>();
-    await systemPromptController.loadSystemPrompts();
-    
-    // 默认数据初始化完成
+    print('默认数据初始化完成');
   } catch (e) {
-    // 默认数据初始化失败
+    print('默认数据初始化失败: $e');
   }
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final AppStateController appStateController = Get.find();
+    
     return Obx(() {
-      return GetMaterialApp(
-        theme: createTheme(Brightness.light),
-        darkTheme: createTheme(Brightness.dark),
-        themeMode: Get.find<AppStateController>().themeMode.value,
-        debugShowCheckedModeBanner: false,
+      return MaterialApp(
+        title: 'CloseAI',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
+          textTheme: GoogleFonts.notoSansTextTheme(),
+        ),
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+          textTheme: GoogleFonts.notoSansTextTheme(
+            ThemeData(brightness: Brightness.dark).textTheme,
+          ),
+        ),
+        themeMode: appStateController.themeMode.value,
         home: HomePage(),
+        debugShowCheckedModeBanner: false,
       );
     });
-  }
-
-  ThemeData createTheme(Brightness brightness) {
-    final theme = ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.blue,
-        brightness: brightness,
-      ),
-    );
-    return theme.copyWith(
-      textTheme: GoogleFonts.notoSansScTextTheme(theme.textTheme),
-    );
   }
 }
