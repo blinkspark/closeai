@@ -26,9 +26,13 @@ class SettingPage extends GetResponsiveView<AppStateController> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                Text(
-                  '设置',
-                  style: Theme.of(Get.context!).textTheme.headlineMedium,
+                Builder(
+                  builder: (BuildContext context) {
+                    return Text(
+                      '设置',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    );
+                  }
                 ),
                 SizedBox(height: 16),
                 ConfigStatusWidget(),
