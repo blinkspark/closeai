@@ -139,12 +139,15 @@ class Completions {
           if (data == '[DONE]') {
             return;
           }
-          if (data.isNotEmpty) {
-            try {
+          if (data.isNotEmpty) {            try {
               final json = jsonDecode(data);
               final delta = json['choices']?[0]?['delta'];
-              if (delta != null && delta['content'] != null) {
-                yield delta['content'] as String;
+              
+              // 如果有工具调用，返回完整的JSON数据
+              if (delta != null && delta['tool_calls'] != null) {
+                yield data; // 返回原始JSON字符串
+              } else if (delta != null && delta['content'] != null) {
+                yield delta['content'] as String; // 返回内容字符串
               }
             } catch (e) {
               // 忽略解析错误，继续处理下一行

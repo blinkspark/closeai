@@ -43,8 +43,7 @@ abstract class OpenAIServiceInterface {
     bool? logProbs,
     Map<String, dynamic>? user,
   });
-  
-  /// 创建流式聊天完成请求
+    /// 创建流式聊天完成请求
   Stream<String> createChatCompletionStream({
     required List<Map<String, dynamic>> messages,
     int? maxTokens,
@@ -56,5 +55,6 @@ abstract class OpenAIServiceInterface {
     double? frequencyPenalty,
     bool? logProbs,
     Map<String, dynamic>? user,
+    bool enableTools = false, // 新增参数，是否启用工具
   });
 }

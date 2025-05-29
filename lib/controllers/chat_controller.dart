@@ -1,12 +1,11 @@
-import 'package:get/get.dart';
 import 'dart:convert';
+import 'package:get/get.dart';
 
 import '../models/message.dart';
 import '../models/session.dart';
 import '../services/message_service.dart';
 import '../services/openai_service_interface.dart';
 import '../services/search_service_interface.dart';
-import '../services/zhipu_search_service.dart';
 import '../core/dependency_injection.dart';
 import '../interfaces/common_interfaces.dart';
 import '../defs.dart';
@@ -247,7 +246,6 @@ class ChatController extends GetxController {
   Future<int> getMessageCountBySessionId(int sessionId) async {
     return await _messageService.getMessageCountBySessionId(sessionId);
   }
-
   /// 发送消息（支持工具调用）
   Future<void> sendMessageWithTools({
     required String content,
@@ -257,7 +255,8 @@ class ChatController extends GetxController {
     
     try {
       isLoading.value = true;
-        // 添加用户消息
+      
+      // 添加用户消息
       await addMessage(
         role: 'user',
         content: content,
@@ -271,55 +270,40 @@ class ChatController extends GetxController {
       await startStreamingMessage(
         role: 'assistant',
         session: session,
-      );      // 调用OpenAI API（带工具支持）
-      final response = await _openAIService.createChatCompletionWithTools(
+      );      // 使用流式接口（带工具支持）
+      String fullContent = '';
+      
+      await for (final chunk in _openAIService.createChatCompletionStream(
         messages: messageHistory,
         enableTools: isToolsEnabled,
         temperature: 0.7,
-        stream: false,      );
-      
-      if (response != null) {
-        final choice = response['choices']?[0];
-        final message = choice?['message'];        final responseContent = message?['content'] ?? '';
-        
-        // 检查是否有搜索结果信息
-        final searchResultsInfo = message?['search_results_info'];
-        final toolCalls = message?['tool_calls'] ?? message?['original_tool_calls'];
-        String finalContent = responseContent;
-        if (searchResultsInfo != null) {
-          List<Map<String, dynamic>> results = [];
-          // 从搜索结果信息中提取数据
-          final queries = searchResultsInfo['queries'] as List<String>? ?? [];
-          final totalCount = searchResultsInfo['total_count'] as int? ?? 0;
-          // 主动补充 results 字段
-          if (searchResultsInfo['results'] is List) {
-            results = (searchResultsInfo['results'] as List)
-              .map((e) => Map<String, dynamic>.from(e)).toList();
-          } else if (_searchService is ZhipuSearchService &&
-                     (_searchService as ZhipuSearchService).lastSearchResults.isNotEmpty) {
-            results = (_searchService as ZhipuSearchService).lastSearchResults;
-            searchResultsInfo['results'] = results; // 补充到 info 里
+      )) {
+        // 处理混合数据类型：工具调用时是JSON字符串，普通响应时是文本内容
+        try {
+          // 尝试解析为JSON（工具调用的情况）
+          final Map<String, dynamic> chunkData = json.decode(chunk);
+          final choices = chunkData['choices'] as List?;
+          if (choices != null && choices.isNotEmpty) {
+            final delta = choices[0]['delta'] as Map<String, dynamic>?;
+            if (delta != null && delta['content'] != null) {
+              final content = delta['content'].toString();
+              fullContent += content;
+              updateStreamingMessage(fullContent);
+            }
           }
-          lastSearchResults.assignAll(results);
-          if (queries.isNotEmpty) {
-            searchResultCount.value = totalCount;
-            lastSearchQueries.assignAll(queries);
-            final searchInfo = '🔍 已搜索到 $totalCount 个网页\n搜索内容: ${queries.join('、')}';
-            finalContent = '$searchInfo\n\n$responseContent';
-          }
-        } else if (toolCalls != null && toolCalls is List && toolCalls.isNotEmpty) {
-          // 备用方案：从工具调用中提取信息
-          final searchInfo = _extractSearchInfo(toolCalls);
-          if (searchInfo.isNotEmpty) {
-            finalContent = '$searchInfo\n\n$responseContent';
+        } catch (e) {
+          // 如果解析JSON失败，说明是普通文本内容，直接添加
+          if (chunk.trim().isNotEmpty) {
+            fullContent += chunk;
+            updateStreamingMessage(fullContent);
           }
         }
-        
-        // 更新助手消息内容
-        updateStreamingMessage(finalContent);
-        await finishStreamingMessage();
       }
-        } catch (e) {
+      
+      // 完成流式消息
+      await finishStreamingMessage();
+      
+    } catch (e) {
       // 如果有流式消息在进行中，取消它
       if (isStreaming.value) {
         await cancelStreamingMessage();
@@ -330,65 +314,9 @@ class ChatController extends GetxController {
         role: 'assistant',
         content: '抱歉，发生了错误：$e',
         session: session,
-      );
-    } finally {
+      );    } finally {
       isLoading.value = false;
     }
-  }
-      /// 提取搜索信息
-  String _extractSearchInfo(List toolCalls) {
-    final searchCalls = toolCalls.where((call) =>
-      call['function']?['name'] == 'zhipu_web_search').toList();
-    
-    if (searchCalls.isEmpty) {
-      return '';
-    }
-    
-    final searchQueries = <String>[];
-    int totalResults = 0;
-    
-    for (final call in searchCalls) {
-      try {
-        final arguments = call['function']['arguments'];
-        
-        if (arguments is String) {
-          final Map<String, dynamic> args =
-            arguments.startsWith('{') ?
-              Map<String, dynamic>.from(
-                jsonDecode(arguments)
-              ) : {'search_query': arguments};
-          
-          final query = args['search_query'] as String?;
-          final count = args['count'] as int? ?? 5;
-          
-          if (query != null && query.isNotEmpty) {
-            searchQueries.add(query);
-            totalResults += count;
-          }
-        }
-      } catch (e) {
-        // 忽略解析错误，继续处理其他调用
-      }
-    }
-      if (searchQueries.isEmpty) {
-      return '';
-    }    // 尝试从搜索服务获取缓存的搜索结果详情
-    try {
-      if (_searchService != null && _searchService is ZhipuSearchService) {
-        final zhipuService = _searchService as ZhipuSearchService;
-        if (zhipuService.lastSearchResults.isNotEmpty) {
-          lastSearchResults.assignAll(zhipuService.lastSearchResults);
-        }
-      }
-    } catch (e) {
-      // 忽略搜索结果获取错误
-    }
-    
-    // 更新搜索状态
-    searchResultCount.value = totalResults;
-    lastSearchQueries.assignAll(searchQueries);
-    
-    return '🔍 已搜索到 $totalResults 个网页\n搜索内容: ${searchQueries.join('、')}';
   }
     
   /// 构建消息历史

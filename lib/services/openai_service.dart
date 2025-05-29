@@ -196,9 +196,7 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
       );    } catch (e) {
       throw Exception('API调用错误: $e');
     }
-  }
-
-  /// 发送流式聊天完成请求
+  }  /// 发送流式聊天完成请求
   @override
   Stream<String> createChatCompletionStream({
     required List<Map<String, dynamic>> messages,
@@ -211,14 +209,27 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
     double? frequencyPenalty,
     bool? logProbs,
     Map<String, dynamic>? user,
+    bool enableTools = false, // 新增参数，是否启用工具
   }) async* {
     if (!isConfigured) {
       throw Exception('OpenAI客户端未配置，请先设置模型和供应商');
     }
-      try {
-      yield* currentClient!.chat.completions.createStream(
+    
+    try {
+      // 1. 构造参数，支持工具
+      List<Map<String, dynamic>>? tools;
+      dynamic toolChoice;
+      if (enableTools) {
+        tools = ToolRegistry.getEnabledTools(enableWebSearch: true);
+        toolChoice = tools.isNotEmpty ? 'auto' : null;
+      }
+      
+      // 2. 直接调用流式接口，OpenAI客户端已经处理了工具调用检测
+      final stream = currentClient!.chat.completions.createStream(
         model: currentModelId!,
         messages: messages,
+        tools: tools,
+        toolChoice: toolChoice,
         maxTokens: maxTokens,
         temperature: temperature,
         topP: topP,
@@ -228,7 +239,70 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
         frequencyPenalty: frequencyPenalty,
         logProbs: logProbs,
         user: user,
-      );    } catch (e) {
+      );
+      
+      // 3. 收集所有数据，检查是否有工具调用
+      List<String> allData = [];
+      bool hasToolCalls = false;
+      
+      await for (final data in stream) {
+        allData.add(data);
+        
+        // 如果数据是JSON格式（工具调用），则收集所有数据后处理
+        if (data.startsWith('{') && data.contains('"tool_calls"')) {
+          hasToolCalls = true;
+        } else if (!hasToolCalls) {
+          // 如果不是工具调用，直接输出内容
+          yield data;
+        }
+      }
+      
+      // 4. 如果有工具调用，处理工具调用并重新请求
+      if (hasToolCalls) {
+        print('Debug: 检测到工具调用，开始处理...');
+        
+        // 解析工具调用响应
+        Map<String, dynamic> toolResponse;
+        try {
+          toolResponse = _reconstructToolCallsFromChunks(allData);
+        } catch (e) {
+          throw Exception('解析工具调用失败: $e');
+        }
+        
+        // 执行工具调用并构建新的消息历史
+        final newMessages = await _buildMessagesWithToolResults(messages, toolResponse);
+        
+        // 重新发起流式请求获取AI的最终回复
+        print('Debug: 工具调用完成，重新请求AI回复...');
+        final finalStream = currentClient!.chat.completions.createStream(
+          model: currentModelId!,
+          messages: newMessages,
+          maxTokens: maxTokens,
+          temperature: temperature,
+          topP: topP,
+          n: n,
+          stop: stop,
+          presencePenalty: presencePenalty,
+          frequencyPenalty: frequencyPenalty,
+          logProbs: logProbs,
+          user: user,
+        );
+        
+        bool hasContent = false;
+        await for (final chunk in finalStream) {
+          if (chunk.trim().isNotEmpty) {
+            hasContent = true;
+            yield chunk;
+          }
+        }
+        
+        // 如果AI没有返回任何内容，提供提示
+        if (!hasContent) {
+          yield '已完成搜索，但AI未返回分析内容。请尝试重新提问。';
+        }
+      }
+      
+    } catch (e) {
       throw Exception('流式API调用错误: $e');
     }
   }
@@ -241,17 +315,30 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
     
     return await currentClient!.listModels();
   }
-  
-  /// 处理工具调用
+    /// 处理工具调用
   Future<Map<String, dynamic>> _handleToolCalls(
     Map<String, dynamic> response,
     List<Map<String, dynamic>> originalMessages,
   ) async {
-    final message = response['choices'][0]['message'];    final toolCalls = message['tool_calls'] as List;
+    final message = response['choices'][0]['message'];
+    final toolCalls = message['tool_calls'] as List;
     
-    // 添加助手消息到对话历史
+    // 添加助手消息到对话历史（确保格式正确）
     final updatedMessages = List<Map<String, dynamic>>.from(originalMessages);
-    updatedMessages.add(message);
+    
+    // 构建正确格式的assistant消息
+    final assistantMessage = <String, dynamic>{
+      'role': 'assistant',
+      'tool_calls': message['tool_calls'],
+    };
+    
+    // 如果原消息有content且不为空，保留它
+    if (message['content'] != null && 
+        message['content'].toString().trim().isNotEmpty) {
+      assistantMessage['content'] = message['content'];
+    }
+    
+    updatedMessages.add(assistantMessage);
     
     // 存储搜索结果信息
     final searchResultsInfo = <String, dynamic>{};
@@ -356,5 +443,130 @@ class OpenAIService extends GetxService implements OpenAIServiceInterface {
       return formattedResult;    } catch (e) {
       throw Exception('搜索失败: $e');
     }
+  }
+  /// 从流式chunks重构完整响应
+  Map<String, dynamic> _reconstructResponseFromChunks(List<String> chunks) {
+    final toolCalls = <Map<String, dynamic>>[];
+    String? finishReason;
+    
+    for (final chunk in chunks) {
+      try {
+        final data = json.decode(chunk);
+        final choices = data['choices'];
+        if (choices != null && choices is List && choices.isNotEmpty) {
+          final choice = choices[0];
+          final delta = choice['delta'] ?? {};
+          
+          // 收集工具调用信息
+          if (delta['tool_calls'] != null) {
+            final chunkToolCalls = delta['tool_calls'] as List;
+            for (final toolCall in chunkToolCalls) {
+              final index = toolCall['index'] ?? 0;
+              
+              // 确保toolCalls数组足够大
+              while (toolCalls.length <= index) {
+                toolCalls.add({});
+              }
+              
+              // 合并工具调用数据
+              final existing = toolCalls[index];
+              if (toolCall['id'] != null) {
+                existing['id'] = toolCall['id'];
+              }
+              if (toolCall['type'] != null) {
+                existing['type'] = toolCall['type'];
+              }
+              if (toolCall['function'] != null) {
+                final func = toolCall['function'];
+                if (existing['function'] == null) {
+                  existing['function'] = <String, dynamic>{};
+                }
+                final existingFunc = existing['function'] as Map<String, dynamic>;
+                
+                if (func['name'] != null) {
+                  existingFunc['name'] = func['name'];
+                }
+                if (func['arguments'] != null) {
+                  existingFunc['arguments'] = (existingFunc['arguments'] ?? '') + func['arguments'].toString();
+                }
+              }
+            }
+          }
+          
+          // 检查结束原因
+          if (choice['finish_reason'] != null) {
+            finishReason = choice['finish_reason'];
+          }
+        }
+      } catch (_) {
+        // 忽略解析错误的chunk
+      }
+    }
+    
+    // 构建完整响应
+    return {
+      'choices': [
+        {
+          'message': {
+            'role': 'assistant',
+            'tool_calls': toolCalls.where((tc) => tc.isNotEmpty).toList(),
+          },
+          'finish_reason': finishReason ?? 'tool_calls',
+        }
+      ]
+    };
+  }
+
+  /// 从流式chunks重构工具调用（用于流式处理）
+  Map<String, dynamic> _reconstructToolCallsFromChunks(List<String> chunks) {
+    return _reconstructResponseFromChunks(chunks);
+  }
+
+  /// 构建包含工具结果的消息历史
+  Future<List<Map<String, dynamic>>> _buildMessagesWithToolResults(
+    List<Map<String, dynamic>> originalMessages,
+    Map<String, dynamic> toolResponse,
+  ) async {
+    final updatedMessages = List<Map<String, dynamic>>.from(originalMessages);
+    
+    // 添加工具调用消息
+    final message = toolResponse['choices'][0]['message'];
+    final assistantMessage = <String, dynamic>{
+      'role': 'assistant',
+      'tool_calls': message['tool_calls'],
+    };
+    
+    if (message['content'] != null && 
+        message['content'].toString().trim().isNotEmpty) {
+      assistantMessage['content'] = message['content'];
+    }
+    
+    updatedMessages.add(assistantMessage);
+    
+    // 执行工具调用并添加结果
+    final toolCalls = message['tool_calls'] as List;
+    for (final toolCall in toolCalls) {
+      final toolCallId = toolCall['id'];
+      final functionName = toolCall['function']['name'];
+      final arguments = toolCall['function']['arguments'];
+      
+      ToolResponse toolResponse;
+      try {
+        final result = await _executeToolCall(functionName, arguments);
+        toolResponse = ToolResponse.success(
+          toolCallId: toolCallId,
+          content: result,
+        );
+      } catch (e) {
+        toolResponse = ToolResponse.error(
+          toolCallId: toolCallId,
+          error: e.toString(),
+        );
+      }
+      
+      updatedMessages.add(toolResponse.toMessageJson());
+    }
+    
+    return updatedMessages;
   }
 }
