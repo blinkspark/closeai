@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../services/zhipu_search_service.dart';
 import '../../controllers/provider_controller.dart';
 import '../../models/provider.dart';
+import 'zhipu_setting_widgets.dart';
 
 /// 智谱AI配置页面
 class ZhipuSettingPage extends StatefulWidget {
@@ -57,240 +58,58 @@ class _ZhipuSettingPageState extends State<ZhipuSettingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoCard(),
-            const SizedBox(height: 16),
-            _buildConfigSection(),
-            const SizedBox(height: 16),
-            _buildTestSection(),
-            if (_testResult != null) ...[
-              const SizedBox(height: 16),
-              _buildTestResultCard(),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.blue),
-                const SizedBox(width: 8),
-                Text(
-                  '关于智谱AI搜索',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            ZhipuInfoCard(
+              features: const [
+                '意图增强检索：智能识别用户查询意图',
+                '结构化输出：返回适合LLM处理的数据格式',
+                '多引擎支持：整合多个主流搜索引擎',
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '智谱AI Web Search API 是专为大模型设计的搜索引擎，具有以下特点：',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            _buildFeatureItem('意图增强检索：智能识别用户查询意图'),
-            _buildFeatureItem('结构化输出：返回适合LLM处理的数据格式'),
-            _buildFeatureItem('多引擎支持：整合多个主流搜索引擎'),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.celebration, color: Colors.green, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '限时免费！基础版搜索免费至2025年5月31日',
-                      style: TextStyle(
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w500,
+              bottomWidget: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.celebration, color: Colors.green, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '限时免费！基础版搜索免费至2025年5月31日',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeatureItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('• ', style: TextStyle(color: Colors.blue)),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConfigSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'API配置',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              'API Key',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _apiKeyController,
-              decoration: InputDecoration(
-                hintText: '请输入智谱AI API Key',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isApiKeyVisible ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isApiKeyVisible = !_isApiKeyVisible;
-                    });
-                  },
-                ),
-              ),
-              obscureText: !_isApiKeyVisible,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '获取API Key：访问 bigmodel.cn → 用户中心 → API管理',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
-              ),
+            ZhipuConfigSection(
+              apiKeyController: _apiKeyController,
+              isLoading: _isLoading,
+              isApiKeyVisible: _isApiKeyVisible,
+              onToggleApiKeyVisible: () {
+                setState(() {
+                  _isApiKeyVisible = !_isApiKeyVisible;
+                });
+              },
+              onSave: _saveConfiguration,
+              onClear: _clearConfiguration,
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveConfiguration,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('保存配置'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton(
-                  onPressed: _clearConfiguration,
-                  child: const Text('清除'),
-                ),
-              ],
+            ZhipuTestSection(
+              isLoading: _isLoading,
+              onTest: _testConnection,
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTestSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '连接测试',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '测试API Key是否有效以及搜索功能是否正常',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isLoading ? null : _testConnection,
-                icon: _isLoading
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.wifi_find),
-                label: const Text('测试连接'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTestResultCard() {
-    final isSuccess = _testResult!.contains('测试成功');    return Card(
-      color: isSuccess ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  isSuccess ? Icons.check_circle : Icons.error,
-                  color: isSuccess ? Colors.green : Colors.red,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '测试结果',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isSuccess ? Colors.green.shade700 : Colors.red.shade700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _testResult!,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            if (_testResult != null) ...[
+              const SizedBox(height: 16),
+              ZhipuTestResultCard(testResult: _testResult!),
+            ],
           ],
         ),
       ),
