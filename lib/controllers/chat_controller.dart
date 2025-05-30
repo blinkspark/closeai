@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 
 import '../models/message.dart';
 import '../models/session.dart';
@@ -286,35 +287,27 @@ class ChatController extends GetxController {
     
     try {
       isLoading.value = true;
-      
       // 添加用户消息
       await addMessage(
         role: 'user',
         content: content,
         session: session,
       );
-      
       // 构建消息历史
       final messageHistory = _buildMessageHistory();
-      
       // 开始流式助手消息
       await startStreamingMessage(
         role: 'assistant',
         session: session,
       );
       streamingStarted = true;
-
-      // 使用流式接口（带工具支持）
       String fullContent = '';
-      
       await for (final chunk in _openAIService.createChatCompletionStream(
         messages: messageHistory,
         enableTools: isToolsEnabled,
         temperature: 0.7,
       )) {
-        // 处理混合数据类型：工具调用时是JSON字符串，普通响应时是文本内容
         try {
-          // 尝试解析为JSON（工具调用的情况）
           final Map<String, dynamic> chunkData = json.decode(chunk);
           final choices = chunkData['choices'] as List?;
           if (choices != null && choices.isNotEmpty) {
@@ -326,27 +319,36 @@ class ChatController extends GetxController {
             }
           }
         } catch (e) {
-          // 如果解析JSON失败，说明是普通文本内容，直接添加
           if (chunk.trim().isNotEmpty) {
             fullContent += chunk;
             updateStreamingMessage(fullContent);
           }
         }
       }
-        // 完成流式消息
+      // 完成流式消息
       AppLogger.d('DEBUG: await for 循环结束，开始完成流式消息');
       await finishStreamingMessage();
       streamingStarted = false; // 标记流式处理已正常完成
       AppLogger.d('DEBUG: 流式处理正常完成');
       
-    } catch (e) {
+    } catch (e, stack) {
       // 如果有流式消息在进行中，取消它
       if (streamingStarted && isStreaming.value) {
         await cancelStreamingMessage();
         streamingStarted = false;
       }
-      
-      // 添加错误消息
+      // 埋点日志
+      AppLogger.e('ChatController流式消息异常', e, stack);
+      // 用户可见提示
+      Get.snackbar(
+        '对话出错',
+        e.toString(),
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: Duration(seconds: 5),
+      );
+      // 添加错误消息到对话
       await addMessage(
         role: 'assistant',
         content: '抱歉，发生了错误：$e',
