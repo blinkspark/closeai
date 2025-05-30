@@ -10,6 +10,7 @@ import '../core/dependency_injection.dart';
 import '../interfaces/common_interfaces.dart';
 import '../defs.dart';
 import 'app_state_controller.dart';
+import '../utils/app_logger.dart';
 
 /// 聊天控制器，负责管理聊天相关的UI状态和业务逻辑
 class ChatController extends GetxController {
@@ -216,7 +217,7 @@ class ChatController extends GetxController {
   Future<void> finishStreamingMessage() async {
     if (streamingMessage.value != null) {
       try {
-        print('DEBUG: 开始完成流式消息，当前isStreaming=${isStreaming.value}');
+        AppLogger.d('DEBUG: 开始完成流式消息，当前isStreaming=${isStreaming.value}');
         
         // 保存最终的消息内容到数据库
         await _messageService.updateMessage(streamingMessage.value!);
@@ -225,12 +226,12 @@ class ChatController extends GetxController {
         streamingMessage.value = null;
         isStreaming.value = false;
         
-        print('DEBUG: 流式消息完成，isStreaming已重置为false');
+        AppLogger.d('DEBUG: 流式消息完成，isStreaming已重置为false');
         
         // 强制触发UI更新
         messages.refresh();
       } catch (e) {
-        print('DEBUG: 保存消息失败，但仍重置状态: $e');
+        AppLogger.d('DEBUG: 保存消息失败，但仍重置状态: $e');
         // 即使保存失败，也要重置状态
         streamingMessage.value = null;
         isStreaming.value = false;
@@ -238,7 +239,7 @@ class ChatController extends GetxController {
         rethrow;
       }
     } else {
-      print('DEBUG: finishStreamingMessage被调用但streamingMessage为null');
+      AppLogger.d('DEBUG: finishStreamingMessage被调用但streamingMessage为null');
     }
   }
 
@@ -333,10 +334,10 @@ class ChatController extends GetxController {
         }
       }
         // 完成流式消息
-      print('DEBUG: await for 循环结束，开始完成流式消息');
+      AppLogger.d('DEBUG: await for 循环结束，开始完成流式消息');
       await finishStreamingMessage();
       streamingStarted = false; // 标记流式处理已正常完成
-      print('DEBUG: 流式处理正常完成');
+      AppLogger.d('DEBUG: 流式处理正常完成');
       
     } catch (e) {
       // 如果有流式消息在进行中，取消它
