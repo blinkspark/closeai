@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../../../controllers/chat_controller.dart';
 
@@ -65,13 +66,14 @@ class MessageWidget extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      message,
-                      style: TextStyle(
-                        color:
-                            isUser
-                                ? Theme.of(context).colorScheme.onPrimaryContainer
-                                : Theme.of(context).colorScheme.onSurface,
+                    MarkdownBody(
+                      data: message,
+                      styleSheet: MarkdownStyleSheet(
+                        p: TextStyle(
+                          color: isUser
+                              ? Theme.of(context).colorScheme.onPrimaryContainer
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ),
                     if (isStreaming) ...[

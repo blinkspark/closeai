@@ -10,6 +10,7 @@ dependencies:
   dio: ^5.8.0+1
   flutter:
     sdk: flutter
+  flutter_markdown: ^0.7.7+1
   get: ^4.7.2
   google_fonts: ^6.2.1
   intl: ^0.20.2
