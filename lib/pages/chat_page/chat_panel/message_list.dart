@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../controllers/chat_controller.dart';
@@ -65,25 +65,30 @@ class MessageWidget extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  crossAxisAlignment: CrossAxisAlignment.start,                  children: [
                     MarkdownBody(
                       data: message,
+                      selectable: true,
                       styleSheet: MarkdownStyleSheet(
                         p: TextStyle(
                           color: isUser
                               ? Theme.of(context).colorScheme.onPrimaryContainer
                               : Theme.of(context).colorScheme.onSurface,
                         ),
+                        code: TextStyle(
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          color: isUser
+                              ? Theme.of(context).colorScheme.onPrimaryContainer
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                        codeblockDecoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
-                      onTapLink: (text, href, title) async {
+                      onTapLink: (text, href, title) {
                         if (href != null) {
-                          final uri = Uri.tryParse(href);
-                          if (uri != null) {
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
-                            }
-                          }
+                          launchUrl(Uri.parse(href));
                         }
                       },
                     ),
