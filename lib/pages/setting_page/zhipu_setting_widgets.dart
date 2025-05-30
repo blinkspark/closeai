@@ -208,7 +208,9 @@ class ZhipuTestResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isSuccess = testResult.contains('测试成功');
     return Card(
-      color: isSuccess ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+      color: isSuccess
+          ? Colors.green.withValues(alpha: 0.1)
+          : Colors.red.withValues(alpha: 0.1),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
