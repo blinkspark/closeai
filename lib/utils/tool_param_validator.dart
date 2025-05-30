@@ -1,5 +1,6 @@
 /// 工具参数统一校验器
 /// 支持为每个工具注册独立的参数校验函数，统一入口调用
+library;
 
 typedef ToolParamValidatorFunc = Map<String, String> Function(Map<String, dynamic> arguments);
 
