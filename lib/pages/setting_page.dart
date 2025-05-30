@@ -20,17 +20,91 @@ class SettingPage extends GetResponsiveView<AppStateController> {
       Rx<Widget>(const Center(child: Text('设置内容')));
 
   @override
-  Widget builder() {
-    // Initialize with the first AI setting page if on desktop and no page is selected yet,
-    // or simply the default text.
-    // For a better UX, ProviderSettingPage could be shown by default on desktop.
-    if (screen.isDesktop && _selectedSettingPage.value is Center) {
-       // You could set a default page here if desired, e.g.:
-       // _selectedSettingPage.value = ProviderSettingPage();
-       // For now, it will keep "设置内容" or what was last set.
+  Widget? builder() {
+    if (screen.isPhone) {
+      // 手机端：保留和桌面端一致的SettingSection布局
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Builder(
+              builder: (BuildContext context) {
+                return Text(
+                  '设置',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            ConfigStatusWidget(),
+            const SizedBox(height: 16),
+            SettingSection(
+              title: 'AI配置',
+              children: [
+                SettingSectionItem(
+                  title: '供应商管理',
+                  onPressed: () => Get.to(() => ProviderSettingPage()),
+                ),
+                SettingSectionItem(
+                  title: '模型管理',
+                  onPressed: () => Get.to(() => ModelSettingPage()),
+                ),
+                SettingSectionItem(
+                  title: '系统提示词',
+                  onPressed: () => Get.to(() => SystemPromptSettingPage()),
+                ),
+                SettingSectionItem(
+                  title: '智谱AI配置',
+                  onPressed: () => Get.to(() => ZhipuSettingPage()),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SettingSection(
+              title: '应用',
+              children: [
+                SettingSectionItem(
+                  title: '主题颜色',
+                  trailing: Obx(() {
+                    return DropdownButton(
+                      items: const [
+                        DropdownMenuItem(value: ThemeMode.light, child: Text('浅色')),
+                        DropdownMenuItem(value: ThemeMode.dark, child: Text('深色')),
+                        DropdownMenuItem(value: ThemeMode.system, child: Text('跟随系统')),
+                      ],
+                      underline: Container(),
+                      focusColor: Colors.transparent,
+                      value: controller.themeMode.value,
+                      onChanged: (idx) {
+                        controller.themeMode.value = idx!;
+                      },
+                    );
+                  }),
+                ),
+                SettingSectionItem(title: '语言', onPressed: () {}),
+                SettingSectionItem(
+                  title: '重置',
+                  isDanger: true,
+                  onPressed: () async {
+                    await controller.reset();
+                    Get.find<SessionController>().reset();
+                    Get.find<ProviderController>().reset();
+                    if (Get.isRegistered<ModelController>()) {
+                      Get.find<ModelController>().reset();
+                    }
+                    if (Get.isRegistered<SystemPromptController>()) {
+                      await Get.find<SystemPromptController>().reset();
+                    }
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
     }
 
-
+    // 桌面端原有Row布局
     return Row(
       children: [
         Container(
