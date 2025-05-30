@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'zhipu_search_service.dart';
-import 'tool_registry.dart';
+import '../utils/tool_param_validator.dart';
 import '../models/function_call.dart';
 
 class ToolCallService {
@@ -76,7 +76,8 @@ class ToolCallService {
     } catch (e) {
       throw Exception('工具调用参数解析失败: $e');
     }
-    final validationErrors = ToolRegistry.validateToolCall(functionName, parsedArgs);
+    // 使用统一参数校验器
+    final validationErrors = ToolParamValidator.validate(functionName, parsedArgs);
     if (validationErrors.isNotEmpty) {
       throw Exception('工具调用参数验证失败:  ${validationErrors.values.join(', ')}');
     }

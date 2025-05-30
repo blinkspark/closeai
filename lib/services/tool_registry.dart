@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../models/function_call.dart';
+import '../utils/tool_param_validator.dart';
 
 /// 工具注册管理器
 class ToolRegistry extends GetxService {
@@ -48,6 +49,41 @@ class ToolRegistry extends GetxService {
         'required': ['search_query'],
       },
     );
+    // 注册参数校验器
+    ToolParamValidator.register('zhipu_web_search', (arguments) {
+      final errors = <String, String>{};
+      // 必需参数校验
+      final searchQuery = arguments['search_query'] as String?;
+      if (searchQuery == null || searchQuery.trim().isEmpty) {
+        errors['search_query'] = '搜索查询不能为空';
+      } else if (searchQuery.length > 78) {
+        errors['search_query'] = '搜索查询不能超过78个字符';
+      }
+      // 搜索引擎校验
+      final searchEngine = arguments['search_engine'] as String?;
+      if (searchEngine != null) {
+        const validEngines = ['search_std', 'search_pro'];
+        if (!validEngines.contains(searchEngine)) {
+          errors['search_engine'] = '不支持的搜索引擎类型';
+        }
+      }
+      // 结果数量校验
+      final count = arguments['count'];
+      if (count != null) {
+        if (count is! int || count < 1 || count > 10) {
+          errors['count'] = '搜索结果数量必须在1-10之间';
+        }
+      }
+      // 时间过滤校验
+      final recencyFilter = arguments['search_recency_filter'] as String?;
+      if (recencyFilter != null) {
+        const validFilters = ['oneDay', 'oneWeek', 'oneMonth', 'oneYear', 'noLimit'];
+        if (!validFilters.contains(recencyFilter)) {
+          errors['search_recency_filter'] = '不支持的时间过滤类型';
+        }
+      }
+      return errors;
+    });
   }
     /// 注册所有可用工具
   static void registerAllTools() {
@@ -99,72 +135,9 @@ class ToolRegistry extends GetxService {
   
   /// 验证工具调用参数
   static Map<String, String> validateToolCall(String toolName, Map<String, dynamic> arguments) {
-    final errors = <String, String>{};
-    
-    if (!hasTool(toolName)) {
-      errors['tool'] = '未知的工具: $toolName';
-      return errors;
-    }
-    
-    final tool = getTool(toolName)!;
-    final required = tool.parameters['required'] as List<dynamic>?;
-    
-    // 检查必需参数
-    if (required != null) {
-      for (final param in required) {
-        if (!arguments.containsKey(param) || arguments[param] == null) {
-          errors[param.toString()] = '缺少必需参数: $param';
-        }
-      }
-    }
-    
-    // 验证具体工具的参数
-    if (toolName == 'zhipu_web_search') {
-      errors.addAll(_validateZhipuSearchParams(arguments));
-    }
-    
-    return errors;
+    // 统一走ToolParamValidator
+    return ToolParamValidator.validate(toolName, arguments);
   }
-  
-  /// 验证智谱搜索参数
-  static Map<String, String> _validateZhipuSearchParams(Map<String, dynamic> arguments) {
-    final errors = <String, String>{};
-    
-    // 验证搜索查询
-    final searchQuery = arguments['search_query'] as String?;
-    if (searchQuery == null || searchQuery.trim().isEmpty) {
-      errors['search_query'] = '搜索查询不能为空';
-    } else if (searchQuery.length > 78) {
-      errors['search_query'] = '搜索查询不能超过78个字符';
-    }
-    
-    // 验证搜索引擎
-    final searchEngine = arguments['search_engine'] as String?;
-    if (searchEngine != null) {
-      const validEngines = ['search_std', 'search_pro'];
-      if (!validEngines.contains(searchEngine)) {
-        errors['search_engine'] = '不支持的搜索引擎类型';
-      }
-    }
-    
-    // 验证结果数量
-    final count = arguments['count'];
-    if (count != null) {
-      if (count is! int || count < 1 || count > 10) {
-        errors['count'] = '搜索结果数量必须在1-10之间';
-      }
-    }
-    
-    // 验证时间过滤
-    final recencyFilter = arguments['search_recency_filter'] as String?;
-    if (recencyFilter != null) {
-      const validFilters = ['oneDay', 'oneWeek', 'oneMonth', 'oneYear', 'noLimit'];
-      if (!validFilters.contains(recencyFilter)) {
-        errors['search_recency_filter'] = '不支持的时间过滤类型';
-      }
-    }
-    
-    return errors;  }
   
   /// 清空所有工具
   static void clearAllTools() {
