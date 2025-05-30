@@ -63,9 +63,7 @@ class SystemPromptDialog {
                               '支持变量',
                               style: TextStyle(fontSize: 10),
                             ),
-                            backgroundColor: Colors.green.withAlpha(
-                              (255 * 0.2).toInt(),
-                            ),
+                            backgroundColor: Colors.green.withValues(alpha: 0.2),
                           ),
                       ],
                     ),
