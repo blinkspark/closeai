@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../controllers/session_controller.dart';
+import '../../../../widgets/generate_title_button.dart';
 
 class SessionTitleWidget extends StatefulWidget {
   const SessionTitleWidget({super.key});
@@ -61,10 +62,9 @@ class _SessionTitleWidgetState extends State<SessionTitleWidget> {
               },
             ),
           ),
-          IconButton(
+          GenerateTitleButton(
+            isEmpty: isEmpty,
             onPressed: isEmpty ? null : () {},
-            icon: Icon(Icons.assistant),
-            tooltip: '生成标题',
           ),
           IconButton(
             onPressed: isEmpty

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../controllers/session_controller.dart';
+import '../../../../widgets/generate_title_button.dart';
 
 /// 用于AppBar的会话标题和编辑按钮（手机端）
 class AppBarSessionTitle extends StatelessWidget {
@@ -26,10 +27,10 @@ class AppBarSessionTitle extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.assistant, size: 20),
-              tooltip: '生成标题',
+            GenerateTitleButton(
+              isEmpty: isEmpty,
               onPressed: isEmpty ? null : () {/* TODO: 生成标题逻辑 */},
+              iconSize: 20,
             ),
             IconButton(
               icon: const Icon(Icons.edit, size: 20),
