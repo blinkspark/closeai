@@ -5,7 +5,12 @@ import '../../../../widgets/generate_title_button.dart';
 
 /// 用于AppBar的会话标题和编辑按钮（手机端）
 class AppBarSessionTitle extends StatelessWidget {
-  const AppBarSessionTitle({super.key});
+  const AppBarSessionTitle({
+    super.key,
+    required this.onTitleGenerated,
+  });
+  
+  final ValueChanged<String> onTitleGenerated;
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +32,21 @@ class AppBarSessionTitle extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            GenerateTitleButton(
-              isEmpty: isEmpty,
-              onPressed: isEmpty ? null : () {/* TODO: 生成标题逻辑 */},
-              iconSize: 20,
-            ),
+            if (!sessionController.isGeneratingTitle.value)
+              GenerateTitleButton(
+                isEmpty: isEmpty,
+                onTitleGenerated: onTitleGenerated,
+                iconSize: 20,
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
             IconButton(
               icon: const Icon(Icons.edit, size: 20),
               tooltip: '编辑标题',

@@ -4,7 +4,9 @@ import '../../../../controllers/session_controller.dart';
 import '../../../../widgets/generate_title_button.dart';
 
 class SessionTitleWidget extends StatefulWidget {
-  const SessionTitleWidget({super.key});
+  final ValueChanged<String>? onTitleGenerated;
+  
+  const SessionTitleWidget({super.key, this.onTitleGenerated});
 
   @override
   State<SessionTitleWidget> createState() => _SessionTitleWidgetState();
@@ -32,9 +34,11 @@ class _SessionTitleWidgetState extends State<SessionTitleWidget> {
     final controller = _sessionController!;
     final isEmpty = controller.sessions.isEmpty;
     final currentTitle = isEmpty ? '' : controller.sessions[controller.index.value].value.title;
-    if (_titleController.text != currentTitle) {
-      _titleController.text = currentTitle;
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_titleController.text != currentTitle) {
+        _titleController.text = currentTitle;
+      }
+    });
   }
 
   @override
@@ -45,6 +49,8 @@ class _SessionTitleWidgetState extends State<SessionTitleWidget> {
       final index = sessionController.index.value;
       final isEmpty = sessionController.sessions.isEmpty;
       final isEditing = sessionController.editingTitle.value;
+      // 显式监听sessions变化
+      final currentSession = isEmpty ? null : sessionController.sessions[index].value;
       
       // 更新controller文本
       _updateControllerText();
@@ -64,7 +70,11 @@ class _SessionTitleWidgetState extends State<SessionTitleWidget> {
           ),
           GenerateTitleButton(
             isEmpty: isEmpty,
-            onPressed: isEmpty ? null : () {},
+            onTitleGenerated: (title) {
+              if (widget.onTitleGenerated != null) {
+                widget.onTitleGenerated!(title);
+              }
+            },
           ),
           IconButton(
             onPressed: isEmpty

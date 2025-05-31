@@ -14,7 +14,12 @@ class ChatPage extends StatelessWidget {
       // 手机端：顶部AppBar+抽屉
       return Scaffold(
         appBar: AppBar(
-          title: const AppBarSessionTitle(),
+          title: AppBarSessionTitle(
+            onTitleGenerated: (title) {
+              // 这里需要实现标题生成后的回调
+              // 我们将在ChatPanel中处理实际逻辑
+            },
+          ),
           leading: Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu),

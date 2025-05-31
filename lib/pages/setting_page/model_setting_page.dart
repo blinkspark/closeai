@@ -41,44 +41,64 @@ class ModelSettingPage extends GetView<ModelController> {
           );
         }
 
-        return ListView.builder(
-          padding: EdgeInsets.all(16),
-          itemCount: controller.models.length,
-          itemBuilder: (context, index) {
-            final model = controller.models[index].value;
-            return Card(
+        return Column(
+          children: [
+            // 标题生成模型选择卡片
+            Card(
+              margin: EdgeInsets.all(16),
               child: ListTile(
-                title: Text(model.modelId),
-                subtitle: Text(
-                  model.provider.value != null
-                    ? '供应商: ${model.provider.value!.name}'
-                    : '供应商: 未设置'
-                ),
-                leading: Obx(() => Radio<Model>(
-                  value: model,
-                  groupValue: controller.selectedModel.value,
-                  onChanged: (value) {
-                    if (value != null) {
-                      controller.selectModel(value);
-                    }
-                  },
+                title: Text('标题生成模型'),
+                subtitle: Obx(() => Text(
+                  controller.titleGenerationModel.value?.modelId ?? '未选择'
                 )),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit),
-                      onPressed: () => _showEditModelDialog(context, model, index),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _showDeleteConfirmDialog(context, index),
-                    ),
-                  ],
+                trailing: TextButton(
+                  child: Text('选择'),
+                  onPressed: () => _showSelectTitleModelDialog(context),
                 ),
               ),
-            );
-          },
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                itemCount: controller.models.length,
+                itemBuilder: (context, index) {
+                  final model = controller.models[index].value;
+                  return Card(
+                    child: ListTile(
+                      title: Text(model.modelId),
+                      subtitle: Text(
+                        model.provider.value != null
+                          ? '供应商: ${model.provider.value!.name}'
+                          : '供应商: 未设置'
+                      ),
+                      leading: Obx(() => Radio<Model>(
+                        value: model,
+                        groupValue: controller.selectedModel.value,
+                        onChanged: (value) {
+                          if (value != null) {
+                            controller.selectModel(value);
+                          }
+                        },
+                      )),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () => _showEditModelDialog(context, model, index),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _showDeleteConfirmDialog(context, index),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       }),
     );
@@ -243,6 +263,47 @@ class ModelSettingPage extends GetView<ModelController> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showSelectTitleModelDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('选择标题生成模型'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: controller.models.length,
+            itemBuilder: (context, index) {
+              final model = controller.models[index].value;
+              return Obx(() => RadioListTile<Model>(
+                title: Text(model.modelId),
+                subtitle: Text(
+                  model.provider.value != null
+                    ? '供应商: ${model.provider.value!.name}'
+                    : '供应商: 未设置'
+                ),
+                value: model,
+                groupValue: controller.titleGenerationModel.value,
+                onChanged: (value) {
+                  if (value != null) {
+                    controller.selectTitleGenerationModel(value);
+                    Navigator.pop(context);
+                  }
+                },
+              ));
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('取消'),
+          ),
+        ],
       ),
     );
   }

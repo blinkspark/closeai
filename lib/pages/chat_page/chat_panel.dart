@@ -1,6 +1,8 @@
-import 'package:closeai/pages/chat_page/chat_panel/message_list.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:closeai/controllers/session_controller.dart';
 
+import 'chat_panel/message_list.dart';
 import 'chat_panel/widgets/session_title_widget.dart';
 import 'chat_panel/widgets/system_prompt_selector.dart';
 import 'chat_panel/widgets/model_selector.dart';
@@ -10,9 +12,11 @@ import 'chat_panel/widgets/message_input.dart';
 class ChatPanel extends StatelessWidget {
   final bool showSessionTitle;
   const ChatPanel({super.key, this.showSessionTitle = true});
+
   @override
   Widget build(BuildContext context) {
     final inputController = TextEditingController();
+    final sessionController = Get.find<SessionController>();
 
     return Column(
       children: [
@@ -21,8 +25,17 @@ class ChatPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Column(
               children: [
-                // 会话标题行
-                const SessionTitleWidget(),
+                // 会话标题行（添加标题生成功能）
+                SessionTitleWidget(
+                  onTitleGenerated: (title) {
+                    if (sessionController.sessions.isNotEmpty) {
+                      final index = sessionController.index.value;
+                      final session = sessionController.sessions[index].value;
+                      session.title = title;
+                      sessionController.updateSession(session);
+                    }
+                  },
+                ),
                 SizedBox(height: 8),
                 // 系统提示词选择行
                 const SystemPromptSelector(),

@@ -18,6 +18,7 @@ class ModelController extends GetxController {
 
   final models = <Rx<Model>>[].obs;
   final selectedModel = Rx<Model?>(null);
+  final titleGenerationModel = Rx<Model?>(null);
 
   Future<void> addModel(Model model) async {
     await isar.writeTxn(() async {
@@ -47,6 +48,9 @@ class ModelController extends GetxController {
     
     // 恢复之前选中的模型
     await _restoreSelectedModel();
+    
+    // 恢复标题生成模型
+    await _restoreTitleGenerationModel();
   }
   
   /// 恢复之前选中的模型
@@ -69,6 +73,22 @@ class ModelController extends GetxController {
       selectedModel.value = models.first.value;
       // 保存默认选择
       appStateController.setSelectedModelId(selectedModel.value?.modelId);
+    }
+  }
+  
+  Future<void> _restoreTitleGenerationModel() async {
+    final savedModelId = appStateController.selectedTitleGenerationModelId.value;
+    
+    if (savedModelId != null && models.isNotEmpty) {
+      // 尝试找到保存的模型
+      final savedModel = models
+          .map((e) => e.value)
+          .where((model) => model.modelId == savedModelId)
+          .firstOrNull;
+      
+      if (savedModel != null) {
+        titleGenerationModel.value = savedModel;
+      }
     }
   }
   
@@ -119,6 +139,13 @@ class ModelController extends GetxController {
     if (Get.isRegistered<OpenAIService>()) {
       Get.find<OpenAIService>().refreshClient();
     }
+  }
+  
+  Future<void> selectTitleGenerationModel(Model model) async {
+    titleGenerationModel.value = model;
+    
+    // 保存选中的模型到持久化存储
+    appStateController.setSelectedTitleGenerationModelId(model.modelId);
   }
 
   Future<void> reset() async {

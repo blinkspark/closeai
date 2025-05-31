@@ -267,6 +267,11 @@ class ChatController extends GetxController {
     searchResultCount.value = 0;
     lastSearchQueries.clear();
   }
+  
+  /// 获取指定会话的消息列表
+  Future<List<Message>> getMessagesForSession(int sessionId) async {
+    return await _messageService.getMessagesBySessionId(sessionId);
+  }
 
   /// 获取消息总数
   Future<int> getMessageCount() async {
