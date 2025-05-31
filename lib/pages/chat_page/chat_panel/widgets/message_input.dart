@@ -48,11 +48,11 @@ class MessageInput extends StatelessWidget {
                   enabled: !isEmpty && !isSending,
                   hintText: isSending
                       ? '正在发送消息...'
-                      : '输入内容 (Enter发送, Shift+Enter换行)',
+                      : '输入内容',
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
+                    horizontal: 16,
+                    vertical: 8,
                   ),
                 ),
               ),

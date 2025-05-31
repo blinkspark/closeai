@@ -8,24 +8,32 @@ import 'chat_panel/widgets/tools_toggle_row.dart';
 import 'chat_panel/widgets/message_input.dart';
 
 class ChatPanel extends StatelessWidget {
-  const ChatPanel({super.key});  @override
+  final bool showSessionTitle;
+  const ChatPanel({super.key, this.showSessionTitle = true});
+  @override
   Widget build(BuildContext context) {
     final inputController = TextEditingController();
-    
+
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // 会话标题行
-              const SessionTitleWidget(),
-              SizedBox(height: 8),
-              // 系统提示词选择行
-              const SystemPromptSelector(),
-            ],
+        if (showSessionTitle)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              children: [
+                // 会话标题行
+                const SessionTitleWidget(),
+                SizedBox(height: 8),
+                // 系统提示词选择行
+                const SystemPromptSelector(),
+              ],
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: const SystemPromptSelector(),
           ),
-        ),
         Expanded(child: MessageList()),
         Divider(height: 1),
         // Chat Input
@@ -35,11 +43,14 @@ class ChatPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: const ModelSelector(),
               ),
               Padding(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Column(
                   children: [
                     // 工具开关行

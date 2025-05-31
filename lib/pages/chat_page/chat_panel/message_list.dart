@@ -10,7 +10,7 @@ class MessageList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ChatController chatController = Get.find();    return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Obx(() {
         final messages = chatController.messages;
         final currentStreamingMessage = chatController.streamingMessage.value;

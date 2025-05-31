@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'chat_page/chat_panel.dart';
 import 'chat_page/session_panel.dart';
+import 'chat_page/chat_panel/widgets/appbar_session_title.dart';
 
 class ChatPage extends StatelessWidget {
   final bool isPhone;
@@ -14,7 +15,7 @@ class ChatPage extends StatelessWidget {
       // 手机端：顶部AppBar+抽屉
       return Scaffold(
         appBar: AppBar(
-          title: const Text('聊天'),
+          title: const AppBarSessionTitle(),
           leading: Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu),
@@ -25,7 +26,7 @@ class ChatPage extends StatelessWidget {
         drawer: Drawer(
           child: SafeArea(child: SessionPanel()),
         ),
-        body: const ChatPanel(),
+        body: const ChatPanel(showSessionTitle: false),
       );
     } else {
       // 桌面端：侧边栏+主内容
@@ -33,7 +34,7 @@ class ChatPage extends StatelessWidget {
         children: [
           SessionPanel(),
           VerticalDivider(width: 1),
-          Expanded(child: ChatPanel()),
+          Expanded(child: ChatPanel(showSessionTitle: true)),
         ],
       );
     }
