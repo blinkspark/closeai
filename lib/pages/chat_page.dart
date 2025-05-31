@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 import 'chat_page/chat_panel.dart';
 import 'chat_page/session_panel.dart';
@@ -7,7 +6,7 @@ import 'chat_page/chat_panel/widgets/appbar_session_title.dart';
 
 class ChatPage extends StatelessWidget {
   final bool isPhone;
-  ChatPage({super.key, this.isPhone = false});
+  const ChatPage({super.key, this.isPhone = false});
 
   @override
   Widget build(BuildContext context) {
