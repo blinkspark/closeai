@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../controllers/app_state_controller.dart';
 import '../../controllers/model_controller.dart';
 import '../../controllers/provider_controller.dart';
 import '../../models/model.dart';
@@ -41,44 +42,78 @@ class ModelSettingPage extends GetView<ModelController> {
           );
         }
 
-        return ListView.builder(
-          padding: EdgeInsets.all(16),
-          itemCount: controller.models.length,
-          itemBuilder: (context, index) {
-            final model = controller.models[index].value;
-            return Card(
-              child: ListTile(
-                title: Text(model.modelId),
-                subtitle: Text(
-                  model.provider.value != null
-                    ? '供应商: ${model.provider.value!.name}'
-                    : '供应商: 未设置'
-                ),
-                leading: Obx(() => Radio<Model>(
-                  value: model,
-                  groupValue: controller.selectedModel.value,
-                  onChanged: (value) {
-                    if (value != null) {
-                      controller.selectModel(value);
-                    }
-                  },
-                )),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit),
-                      onPressed: () => _showEditModelDialog(context, model, index),
+        // 新增：生成标题模型选择
+        final appStateController = Get.find<AppStateController>();
+        final modelController = Get.find<ModelController>();
+        Widget titleModelSelector = Obx(() {
+          if (modelController.models.isEmpty) {
+            return SizedBox();
+          }
+          return DropdownButtonFormField<String>(
+            value: appStateController.selectedTitleModelId.value,
+            decoration: InputDecoration(labelText: '生成标题时使用的模型'),
+            items: modelController.models.map((model) {
+              final m = model.value;
+              final providerName = m.provider.value?.name ?? '未知供应商';
+              return DropdownMenuItem<String>(
+                value: m.modelId,
+                child: Text('$providerName - ${m.modelId}'),
+              );
+            }).toList(),
+            onChanged: (val) {
+              appStateController.setSelectedTitleModelId(val);
+            },
+          );
+        });
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: titleModelSelector,
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.all(16),
+                itemCount: controller.models.length,
+                itemBuilder: (context, index) {
+                  final model = controller.models[index].value;
+                  return Card(
+                    child: ListTile(
+                      title: Text(model.modelId),
+                      subtitle: Text(
+                        model.provider.value != null
+                          ? '供应商: {model.provider.value!.name}'
+                          : '供应商: 未设置'
+                      ),
+                      leading: Obx(() => Radio<Model>(
+                        value: model,
+                        groupValue: controller.selectedModel.value,
+                        onChanged: (value) {
+                          if (value != null) {
+                            controller.selectModel(value);
+                          }
+                        },
+                      )),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () => _showEditModelDialog(context, model, index),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _showDeleteConfirmDialog(context, index),
+                          ),
+                        ],
+                      ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _showDeleteConfirmDialog(context, index),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ],
         );
       }),
     );

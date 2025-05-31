@@ -64,7 +64,12 @@ class _SessionTitleWidgetState extends State<SessionTitleWidget> {
           ),
           GenerateTitleButton(
             isEmpty: isEmpty,
-            onPressed: isEmpty ? null : () {},
+            onPressed: isEmpty
+                ? null
+                : () async {
+                    await sessionController.generateTitleForCurrentSession();
+                    _updateControllerText();
+                  },
           ),
           IconButton(
             onPressed: isEmpty

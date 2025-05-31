@@ -16,6 +16,7 @@ class AppStateController extends GetxController {
   final themeMode = ThemeMode.system.obs;
   final isToolsEnabled = false.obs;
   final selectedModelId = Rxn<String>();
+  final selectedTitleModelId = Rxn<String>();
 
   final navIndex = 0.obs;
 
@@ -33,6 +34,7 @@ class AppStateController extends GetxController {
     themeMode.value = mode;
     await saveConfig();
   }
+
   void setToolsEnabled(bool enabled) async {
     isToolsEnabled.value = enabled;
     await saveConfig();
@@ -43,11 +45,17 @@ class AppStateController extends GetxController {
     await saveConfig();
   }
 
+  void setSelectedTitleModelId(String? modelId) async {
+    selectedTitleModelId.value = modelId;
+    await saveConfig();
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'themeMode': themeMode.value.index,
       'isToolsEnabled': isToolsEnabled.value,
       'selectedModelId': selectedModelId.value,
+      'selectedTitleModelId': selectedTitleModelId.value,
     };
   }
 
@@ -55,13 +63,16 @@ class AppStateController extends GetxController {
     themeMode.value = ThemeMode.values[json['themeMode'] ?? 0];
     isToolsEnabled.value = json['isToolsEnabled'] ?? false;
     selectedModelId.value = json['selectedModelId'];
+    selectedTitleModelId.value = json['selectedTitleModelId'];
   }
+
   Future<void> loadConfig() async {
     if (await configFile.exists()) {
       final json = await configFile.readAsString();
       fromJson(jsonDecode(json));
     }
   }
+
   Future<void> saveConfig() async {
     final configData = toJson();
     final json = jsonEncode(configData);

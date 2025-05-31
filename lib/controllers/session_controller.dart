@@ -9,6 +9,7 @@ import '../services/openai_service_interface.dart';
 import 'chat_controller.dart';
 import '../core/dependency_injection.dart';
 import '../defs.dart';
+import 'app_state_controller.dart';
 
 /// 会话控制器（解耦版本），负责管理会话相关的UI状态和业务逻辑
 class SessionController extends GetxController {
@@ -174,6 +175,49 @@ class SessionController extends GetxController {
       setIndex(0);
     } else {
       _chatController.clearMessages();
+    }
+  }
+
+  /// 生成标题（调用OpenAI）
+  Future<void> generateTitleForCurrentSession() async {
+    if (sessions.isEmpty) return;
+    final currentSession = sessions[index.value].value;
+    final messages = await di.get<MessageService>().getMessagesBySessionId(currentSession.id);
+    if (messages.isEmpty) return;
+
+    // 获取用于生成标题的模型ID
+    final appStateController = Get.find<AppStateController>();
+    final titleModelId = appStateController.selectedTitleModelId.value;
+    if (titleModelId == null || titleModelId.isEmpty) {
+      Get.snackbar('未选择模型', '请在设置中选择用于生成标题的模型');
+      return;
+    }
+
+    // 构造用于生成标题的 prompt
+    final prompt = '请为以下对话生成一个简洁有代表性的标题：\n' +
+        messages.map((m) => '[${m.role}] ${m.content}').join('\n');
+    try {
+      final result = await _openAIService.createChatCompletion(
+        messages: [
+          {'role': 'system', 'content': '你是一个标题生成助手，只返回标题本身，不要多余解释。'},
+          {'role': 'user', 'content': prompt},
+        ],
+        maxTokens: 32,
+        temperature: 0.5,
+        // 指定模型
+        user: {'model': titleModelId},
+      );
+      final title = result?['choices']?[0]?['message']?['content']?.toString().trim();
+      if (title != null && title.isNotEmpty) {
+        currentSession.title = title;
+        await updateSession(currentSession);
+        sessions[index.value].refresh();
+        // 生成成功不弹出snackbar
+      } else {
+        Get.snackbar('生成失败', '未能获取到标题内容');
+      }
+    } catch (e) {
+      Get.snackbar('生成失败', e.toString());
     }
   }
 }
