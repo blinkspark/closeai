@@ -12,6 +12,10 @@ import 'setting_page/model_setting_page.dart';
 import 'setting_page/system_prompt_setting_page.dart';
 import 'setting_page/zhipu_setting_page.dart';
 import 'setting_page/config_status_widget.dart';
+import 'user/login_page.dart';
+import 'user/register_page.dart';
+import 'user/info_page.dart';
+import 'user/change_password_page.dart';
 
 class SettingPage extends GetResponsiveView<AppStateController> {
   SettingPage({super.key});
@@ -96,6 +100,27 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                       await Get.find<SystemPromptController>().reset();
                     }
                   },
+                ),
+              ],
+            ),
+            SettingSection(
+              title: '用户',
+              children: [
+                SettingSectionItem(
+                  title: '登录',
+                  onPressed: () => Get.to(() => const UserLoginPage()),
+                ),
+                SettingSectionItem(
+                  title: '注册',
+                  onPressed: () => Get.to(() => const UserRegisterPage()),
+                ),
+                SettingSectionItem(
+                  title: '用户信息',
+                  onPressed: () => Get.to(() => const UserInfoPage()),
+                ),
+                SettingSectionItem(
+                  title: '修改密码',
+                  onPressed: () => Get.to(() => const ChangePasswordPage()),
                 ),
               ],
             ),
@@ -220,6 +245,27 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                         await Get.find<SystemPromptController>().reset();
                       }
                     },
+                  ),
+                ],
+              ),
+              SettingSection(
+                title: '用户',
+                children: [
+                  SettingSectionItem(
+                    title: '登录',
+                    onPressed: () => Get.to(() => const UserLoginPage()),
+                  ),
+                  SettingSectionItem(
+                    title: '注册',
+                    onPressed: () => Get.to(() => const UserRegisterPage()),
+                  ),
+                  SettingSectionItem(
+                    title: '用户信息',
+                    onPressed: () => Get.to(() => const UserInfoPage()),
+                  ),
+                  SettingSectionItem(
+                    title: '修改密码',
+                    onPressed: () => Get.to(() => const ChangePasswordPage()),
                   ),
                 ],
               ),

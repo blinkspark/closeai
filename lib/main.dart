@@ -14,6 +14,10 @@ import 'models/session.dart';
 import 'models/message.dart';
 import 'models/system_prompt.dart';
 import 'pages/home_page.dart';
+import 'pages/user/login_page.dart';
+import 'pages/user/register_page.dart';
+import 'pages/user/info_page.dart';
+import 'pages/user/change_password_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -89,6 +93,12 @@ class MainApp extends StatelessWidget {
         themeMode: Get.find<AppStateController>().themeMode.value,
         debugShowCheckedModeBanner: false,
         home: HomePage(),
+        getPages: [
+          GetPage(name: '/user/login', page: () => const UserLoginPage()),
+          GetPage(name: '/user/register', page: () => const UserRegisterPage()),
+          GetPage(name: '/user/info', page: () => const UserInfoPage()),
+          GetPage(name: '/user/change-password', page: () => const ChangePasswordPage()),
+        ],
       );
     });
   }
