@@ -15,8 +15,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final _newPwdController = TextEditingController();
   final _confirmPwdController = TextEditingController();
   String? _errorText;
+  bool _passwordChanged = false;
   final UserController userController = Get.find<UserController>();
-
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -34,6 +34,39 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 ElevatedButton(
                   onPressed: () => Get.offAllNamed('/user/login'),
                   child: const Text('去登录'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      
+      if (_passwordChanged) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('修改密码')),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.check_circle, size: 64, color: Colors.green),
+                const SizedBox(height: 16),
+                const Text('密码修改成功'),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _passwordChanged = false;
+                      _oldPwdController.clear();
+                      _newPwdController.clear();
+                      _confirmPwdController.clear();
+                    });
+                  },
+                  child: const Text('继续修改'),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Get.back(),
+                  child: const Text('返回'),
                 ),
               ],
             ),
@@ -76,15 +109,15 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
+                  child: ElevatedButton(                    onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         setState(() {
                           _errorText = null;
+                        });                        userController.changePassword();
+                        setState(() {
+                          _passwordChanged = true;
                         });
-                        userController.changePassword();
                         Get.snackbar('密码修改成功', '', snackPosition: SnackPosition.BOTTOM);
-                        Get.offAllNamed('/user/info');
                       }
                     },
                     child: const Text('保存'),

@@ -20,10 +20,26 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (userController.isLoggedIn.value) {
-        // 已登录，显示用户信息页
-        return Center(child: Text('已注册并登录，正在跳转...'));
+    return Obx(() {      if (userController.isLoggedIn.value) {
+        // 已登录，显示注册成功信息
+        return Scaffold(
+          appBar: AppBar(title: const Text('注册')),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.check_circle, size: 64, color: Colors.green),
+                const SizedBox(height: 16),
+                const Text('注册成功'),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Get.back(),
+                  child: const Text('返回'),
+                ),
+              ],
+            ),
+          ),
+        );
       }
       return Scaffold(
         appBar: AppBar(title: const Text('注册')),
@@ -66,15 +82,13 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
+                  child: ElevatedButton(                    onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         setState(() {
                           _errorText = null;
                         });
                         userController.register(_usernameController.text, _emailController.text);
                         Get.snackbar('注册成功', '已自动登录', snackPosition: SnackPosition.BOTTOM);
-                        Get.offAllNamed('/user/info');
                       }
                     },
                     child: const Text('注册'),

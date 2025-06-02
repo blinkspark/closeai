@@ -18,10 +18,26 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (userController.isLoggedIn.value) {
-        // 已登录，显示用户信息页
-        return Center(child: Text('已登录，正在跳转...'));
+    return Obx(() {      if (userController.isLoggedIn.value) {
+        // 已登录，显示登录成功信息
+        return Scaffold(
+          appBar: AppBar(title: const Text('登录')),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.check_circle, size: 64, color: Colors.green),
+                const SizedBox(height: 16),
+                const Text('登录成功'),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Get.back(),
+                  child: const Text('返回'),
+                ),
+              ],
+            ),
+          ),
+        );
       }
       return Scaffold(
         appBar: AppBar(title: const Text('登录')),
@@ -51,16 +67,13 @@ class _UserLoginPageState extends State<UserLoginPage> {
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
+                  child: ElevatedButton(                    onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         setState(() {
                           _errorText = null;
                         });
                         userController.login(_usernameController.text, _passwordController.text);
                         Get.snackbar('登录成功', '', snackPosition: SnackPosition.BOTTOM);
-                        // 跳转到用户信息页
-                        Get.offAllNamed('/user/info');
                       }
                     },
                     child: const Text('登录'),
