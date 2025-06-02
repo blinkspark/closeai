@@ -6,6 +6,7 @@ import '../controllers/provider_controller.dart';
 import '../controllers/model_controller.dart';
 import '../controllers/session_controller.dart';
 import '../controllers/system_prompt_controller.dart';
+import '../controllers/user_controller.dart';
 import 'setting_page/setting_section.dart';
 import 'setting_page/provider_setting_page.dart';
 import 'setting_page/model_setting_page.dart';
@@ -106,22 +107,78 @@ class SettingPage extends GetResponsiveView<AppStateController> {
             SettingSection(
               title: '用户',
               children: [
-                SettingSectionItem(
-                  title: '登录',
-                  onPressed: () => Get.to(() => const UserLoginPage()),
-                ),
-                SettingSectionItem(
-                  title: '注册',
-                  onPressed: () => Get.to(() => const UserRegisterPage()),
-                ),
-                SettingSectionItem(
-                  title: '用户信息',
-                  onPressed: () => Get.to(() => const UserInfoPage()),
-                ),
-                SettingSectionItem(
-                  title: '修改密码',
-                  onPressed: () => Get.to(() => const ChangePasswordPage()),
-                ),
+                Obx(() {
+                  final userController = Get.find<UserController>();
+                  // 只显示一组
+                  if (!userController.isLoggedIn.value) {
+                    return Column(
+                      children: [
+                        SettingSectionItem(
+                          title: '登录',
+                          onPressed: () {
+                            final page = UserLoginPage();
+                            if (screen.isDesktop) {
+                              _selectedSettingPage.value = page;
+                            } else {
+                              Get.to(() => page);
+                            }
+                          },
+                        ),
+                        SettingSectionItem(
+                          title: '注册',
+                          onPressed: () {
+                            final page = UserRegisterPage();
+                            if (screen.isDesktop) {
+                              _selectedSettingPage.value = page;
+                            } else {
+                              Get.to(() => page);
+                            }
+                          },
+                        ),
+                      ],
+                    );
+                  } else {
+                    return Column(
+                      children: [
+                        SettingSectionItem(
+                          title: '用户信息',
+                          onPressed: () {
+                            final page = UserInfoPage();
+                            if (screen.isDesktop) {
+                              _selectedSettingPage.value = page;
+                            } else {
+                              Get.to(() => page);
+                            }
+                          },
+                        ),
+                        SettingSectionItem(
+                          title: '修改密码',
+                          onPressed: () {
+                            final page = ChangePasswordPage();
+                            if (screen.isDesktop) {
+                              _selectedSettingPage.value = page;
+                            } else {
+                              Get.to(() => page);
+                            }
+                          },
+                        ),
+                        SettingSectionItem(
+                          title: '退出登录',
+                          isDanger: true,
+                          onPressed: () {
+                            userController.logout();
+                            Get.snackbar('已退出登录', '', snackPosition: SnackPosition.BOTTOM);
+                            if (screen.isDesktop) {
+                              _selectedSettingPage.value = const Center(child: Text('设置内容'));
+                            } else {
+                              Get.offAllNamed('/user/login');
+                            }
+                          },
+                        ),
+                      ],
+                    );
+                  }
+                }),
               ],
             ),
           ],
@@ -206,7 +263,7 @@ class SettingPage extends GetResponsiveView<AppStateController> {
                     title: '主题颜色',
                     trailing: Obx(() {
                       return DropdownButton(
-                        items: [
+                        items: const [
                           DropdownMenuItem(
                             value: ThemeMode.light,
                             child: Text('浅色'),
@@ -251,22 +308,45 @@ class SettingPage extends GetResponsiveView<AppStateController> {
               SettingSection(
                 title: '用户',
                 children: [
-                  SettingSectionItem(
-                    title: '登录',
-                    onPressed: () => Get.to(() => const UserLoginPage()),
-                  ),
-                  SettingSectionItem(
-                    title: '注册',
-                    onPressed: () => Get.to(() => const UserRegisterPage()),
-                  ),
-                  SettingSectionItem(
-                    title: '用户信息',
-                    onPressed: () => Get.to(() => const UserInfoPage()),
-                  ),
-                  SettingSectionItem(
-                    title: '修改密码',
-                    onPressed: () => Get.to(() => const ChangePasswordPage()),
-                  ),
+                  Obx(() {
+                    final userController = Get.find<UserController>();
+                    if (!userController.isLoggedIn.value) {
+                      return Column(
+                        children: [
+                          SettingSectionItem(
+                            title: '登录',
+                            onPressed: () => _selectedSettingPage.value = UserLoginPage(),
+                          ),
+                          SettingSectionItem(
+                            title: '注册',
+                            onPressed: () => _selectedSettingPage.value = UserRegisterPage(),
+                          ),
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        children: [
+                          SettingSectionItem(
+                            title: '用户信息',
+                            onPressed: () => _selectedSettingPage.value = UserInfoPage(),
+                          ),
+                          SettingSectionItem(
+                            title: '修改密码',
+                            onPressed: () => _selectedSettingPage.value = ChangePasswordPage(),
+                          ),
+                          SettingSectionItem(
+                            title: '退出登录',
+                            isDanger: true,
+                            onPressed: () {
+                              userController.logout();
+                              Get.snackbar('已退出登录', '', snackPosition: SnackPosition.BOTTOM);
+                              _selectedSettingPage.value = const Center(child: Text('请选择一项设置'));
+                            },
+                          ),
+                        ],
+                      );
+                    }
+                  }),
                 ],
               ),
               ],

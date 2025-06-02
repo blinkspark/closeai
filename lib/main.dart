@@ -8,6 +8,7 @@ import 'config/dependency_config.dart';
 import 'controllers/app_state_controller.dart';
 import 'controllers/provider_controller.dart';
 import 'controllers/system_prompt_controller.dart';
+import 'controllers/user_controller.dart';
 import 'models/model.dart';
 import 'models/provider.dart';
 import 'models/session.dart';
@@ -38,6 +39,9 @@ void main() async {
 
     // 初始化依赖注入
     await DependencyConfig.initialize();
+    
+    // 注入UserController
+    Get.put(UserController());
     
     // 初始化默认数据
     await _initializeDefaultData();
